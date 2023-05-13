@@ -28,7 +28,7 @@ def createFolders(base):
     for p in paths: p.mkdir(parents=True, exist_ok=True)
 
 
-def fetchPaths(base, dataset, postfix):
+def fetchPaths(base, dataset, postfix, skip_create=True):
     FILENAME_POSTFIX = f'{dataset}_{postfix}'
     paths = {
         'data': base / 'datasets' / dataset,
@@ -39,8 +39,9 @@ def fetchPaths(base, dataset, postfix):
         'lhl_pca': base / 'experiments' / dataset / 'last-hidden-layer' / 'pca' / FILENAME_POSTFIX / 'single',
     }
 
-    for _, p in paths.items():
-        p.mkdir(exist_ok=True, parents=True)
+    if skip_create:
+        for _, p in paths.items():
+            p.mkdir(exist_ok=True, parents=True)
 
     paths['configuration'] = base / 'configurations' / f'{dataset.lower()}.json'
 
