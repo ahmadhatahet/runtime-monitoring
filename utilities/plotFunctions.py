@@ -192,9 +192,9 @@ def normalize_confusion_matrix(cm):
     return np.divide(cm, np.tile(cm.sum(axis=0).reshape(cm.shape[0], 1), cm.shape[0]))
 
 
-def save_confusion_matrix(cm, path, prefix=None, stage="test"):
+def save_confusion_matrix(cm, path, model_fix=None, stage="test"):
     """save confusion martix"""
-    np.savetxt(path / f"{prefix}_confusion_matrix_{stage}.txt", cm, delimiter=",")
+    np.savetxt(path / f"{model_fix}_confusion_matrix_{stage}.txt", cm, delimiter=",")
 
 
 def load_confusion_matrix(path):
