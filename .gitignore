@@ -12,13 +12,13 @@ dump*
 *.sh
 *.zip
 *.pickle
-*/lastHiddenLayer
 !requirements.txt
 main.py
 app.py
 pattern.py
 train.py
 start-jupyter.sh
+last-hidden-layer
 
 # C extensions
 *.so
