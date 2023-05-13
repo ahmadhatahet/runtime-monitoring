@@ -45,6 +45,8 @@ def show_images_loader(loader, title='', feature_names=None):
             class_name = feature_names[class_name]
         axs.set_title(f"{class_name}")
 
+    plt.show()
+
 
 def plot_results(
     title,
