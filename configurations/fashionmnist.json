@@ -1,0 +1,35 @@
+{
+    "configuration": {
+        "optimizer": {
+            "SGD": {
+                "momentum": 0.9
+            }
+        },
+        "lhl_neurons": [
+            30,
+            60,
+            100
+        ],
+        "flavors": [
+            "raw",
+            "pca"
+        ],
+        "subset_neurons": [
+            1,
+            0
+        ],
+        "eta": 4
+    },
+    "model_setup": {
+        "batchnorm": 1,
+        "dropout": 0.1
+    },
+    "model_config": {
+        "batch_size": 64,
+        "lr": 0.001,
+        "epochs": 30,
+        "patience": 5,
+        "L2": 0.001,
+        "L1": 0.001
+    }
+}
