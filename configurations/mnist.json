@@ -1,8 +1,16 @@
 {
     "configuration": {
+        "dataset": "MNIST",
         "optimizer": {
             "SGD": {
                 "momentum": 0.9
+            }
+        },
+        "scheduler": {
+            "MultiStepLR": {
+                "milestones": [
+                    7
+                ]
             }
         },
         "lhl_neurons": [
@@ -12,7 +20,7 @@
         ],
         "flavors": [
             "raw",
-            "pca"
+            "scaler_pca"
         ],
         "subset_neurons": [
             1,
