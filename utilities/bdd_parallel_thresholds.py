@@ -21,59 +21,63 @@ def run_parallel(args):
     # paths
     base = Path().cwd()
     paths = fetchPaths(base, DATASET, POSTFIX)
+    path_lhl = paths['lhl']
+    path_lhl_data = paths['lhl_' + FALVOR]
     path_bdd = paths['bdd'] / FALVOR
     path_bdd.mkdir(exist_ok=True)
-    path_lhl = paths['lhl_' + FALVOR]
-    path_lhl_pca = paths['lhl_pca']
+
+    configs = load_json(paths['configuration'].parent / 'thresholds.json')
+    thresholds = configs['thlds']
 
     # load pca components
-    pca_single = None
-    if LOAD_NEURONS and FALVOR == 'pca' :
-        pca_single = load_pickle(path_lhl_pca / 'pca_single.pkl')
+    pca_ = None
+    if LOAD_NEURONS and FALVOR != 'raw' :
+        pca_ = load_pickle(path_lhl / f'{FALVOR}.pkl')
         LOAD_NEURONS = False
+
 
     # output file name
     POSTFIX2 = FALVOR.lower()
     POSTFIX2 += "_neurons" if LOAD_NEURONS else ""
-    POSTFIX2 += "_components" if pca_single is not None else ""
+    POSTFIX2 += f"{FALVOR}_components" if pca_ is not None else ""
     POSTFIX2 += f"_{FILENAME_POSTFIX}"
 
-    # import train data
-    df = pd.read_csv(path_lhl / f"{FILENAME_POSTFIX}_train.csv")
+    # import Data
+    df_train = pd.read_csv(path_lhl_data / f"{FILENAME_POSTFIX}_{FALVOR}_train.csv")
 
-    # filter train data to only correctly classfied instances
-    df_true = df[df["true"] == True].copy()
+    # select only true classified
+    df_true = df_train[df_train["true"] == True].copy()
     df_true = df_true.drop("true", axis=1).reset_index(drop=True)
 
-    # import test data
-    df_test = pd.read_csv(path_lhl / f"{FILENAME_POSTFIX}_test.csv")
+    df_test = pd.read_csv(path_lhl_data / f"{FILENAME_POSTFIX}_{FALVOR}_test.csv")
 
-    # load selected neurons if raw data
-    neurons = []
-    if LOAD_NEURONS:
-        if pca_single is None:
-            neurons = load_json(path_lhl_pca / f"{FILENAME_POSTFIX}_neurons.json")
-        # select first n comonents if pca data
-        else:
-            NUM_COMPONENTS = numComponents(pca_single)
-            df.drop(df.columns[NUM_COMPONENTS+1:-2], axis=1, inplace=True)
-            df_test.drop(df.columns[NUM_COMPONENTS+1:-2], axis=1, inplace=True)
-            # true column is dropped, thus only y need to be kept
-            df_true.drop(df.columns[NUM_COMPONENTS+1:-1], axis=1, inplace=True)
+    neurons = None
+    if LOAD_NEURONS and pca_ is None:
+        neurons = load_json(path_lhl / f"neurons_scaler_pca.json")
+
+    if LOAD_NEURONS and pca_ is not None:
+        NUM_COMPONENTS = numComponents(pca_)
+        neurons = [f'x{i}' for i in range(NUM_COMPONENTS)]
+        # df_train.drop(df_train.columns[NUM_COMPONENTS+1:-2], axis=1, inplace=True)
+        # df_test.drop(df_train.columns[NUM_COMPONENTS+1:-2], axis=1, inplace=True)
+        # # true column is dropped, thus only y need to be kept
+        # df_true.drop(df_train.columns[NUM_COMPONENTS+1:-1], axis=1, inplace=True)
 
 
     # define thresholds
     thlds = []
     thld_names = []
 
-    # add zero (ReLU) quantile
-    thlds.append(np.zeros(df_true.drop("y", axis=1).shape[1]))
-    thld_names.append("relu")
+    for p in thresholds:
+        if p != 0:
+            # generate odd quantiles
+            thlds.append(np.quantile(df_true.drop("y", axis=1), np.round(p, 1), axis=0))
+            thld_names.append(f"qth_{p}")
+        else:
+            # add zero (ReLU) quantile
+            thlds.append(np.zeros(df_true.drop("y", axis=1).shape[1]))
+            thld_names.append("relu")
 
-    # generate odd quantiles
-    thlds.extend([np.quantile(df_true.drop("y", axis=1), np.round(p, 1), axis=0)
-         for p in [0.9, 0.7, 0.5, 0.3]])
-    thld_names.extend([f"qth_{p}" for p in [0.9, 0.7, 0.5, 0.3]])
 
     # args combinations
     combinations = [(thld_name, thld, eta) for (thld_name, thld) in zip(thld_names, thlds)]
@@ -81,13 +85,16 @@ def run_parallel(args):
     # drop a combination if the scores already have been collected
     ind_to_pop = []
     for i, (thld_name, *_) in enumerate(combinations):
-        if ((path_bdd / f"info-args-{thld_name}-{POSTFIX2}_CUDD.csv").is_file()
-            and (path_bdd / f"scores-args-{thld_name}-{POSTFIX2}_details_CUDD.csv").is_file()):
+        if (
+            (path_bdd / f"info-args-{thld_name}-{eta}-{POSTFIX2}.csv").is_file()
+            and (path_bdd / f"scores-args-{thld_name}-{eta}-{POSTFIX2}.csv").is_file()
+        ):
             print(f"[ FOUNDED: {POSTFIX2} {thld_name} ]")
             ind_to_pop.append(i)
 
     for i in ind_to_pop[::-1]: combinations.pop(i)
 
+    # print combination
     for c, *_ in combinations: print(c)
 
     # start the pool
@@ -100,7 +107,7 @@ def run_parallel(args):
 
         results = pool.map(
             build_bdd_multi_etas,
-            [(df.copy(), df_test.copy(), df_true.copy(),
+            [(df_train.copy(), df_test.copy(), df_true.copy(),
               neurons, thld_name, thld, eta, memory, path_bdd)
              for thld_name, thld, eta in combinations])
 
@@ -111,10 +118,10 @@ def run_parallel(args):
         print("> Done All BDDs...")
 
         df_bdd_info = pd.concat([r[0] for r in results]).reset_index(drop=True)
-        df_bdd_info.to_csv(path_bdd / f"all-thlds-info-{POSTFIX2}_CUDD.csv", index=False)
+        df_bdd_info.to_csv(path_bdd / f"all-thlds-info-{eta}-{POSTFIX2}.csv", index=False)
 
         df_bdd_scores = pd.concat([r[1] for r in results]).reset_index(drop=True)
-        df_bdd_scores.to_csv(path_bdd / f"all-thlds-scores-{POSTFIX2}_details_CUDD.csv", index=False)
+        df_bdd_scores.to_csv(path_bdd / f"all-thlds-scores-{eta}-{POSTFIX2}.csv", index=False)
 
     print("[" + "=" * 100 + "]")
     print("> Finished!")
