@@ -5,6 +5,12 @@
                 "momentum": 0.9
             }
         },
+        "scheduler": {
+            "StepLR": {
+                "gamma": 0.1,
+                "step_size":10
+            }
+        },
         "lhl_neurons": [
             30,
             60,
@@ -26,8 +32,8 @@
     },
     "model_config": {
         "batch_size": 64,
-        "lr": 0.001,
-        "epochs": 30,
+        "lr": 0.01,
+        "epochs": 25,
         "patience": 5,
         "L2": 0.001,
         "L1": 0.001
