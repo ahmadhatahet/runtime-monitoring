@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from datetime import datetime as dt
+from pathlib import Path
+import pickle
 import matplotlib.pyplot as plt
 from dd import cudd
 import time
@@ -382,12 +384,15 @@ def build_bdd_multi_etas(args):
             temp_name += "-neurons"
         # some bdds are too big to save
         # thus the processed data and bdd results will be saved instead
-        # with open(save_path / f'{temp_name}.pkl', "wb") as f:
-        #     pickle.dump(patterns, f, pickle.HIGHEST_PROTOCOL)
+        temp_path = Path('/tmp/ah19') / save_path.name
+        temp_path.mkdir(parents=True, exist_ok=True)
+
+        with open(temp_path / f'{temp_name}.pkl', "wb") as f:
+            pickle.dump(patterns, f, pickle.HIGHEST_PROTOCOL)
 
         # save scores
-        df_bdd_info.to_csv(save_path / f'info-{temp_name}_CUDD.csv', index=False)
-        df_bdd_scores.to_csv(save_path / f'scores-{temp_name}_CUDD.csv', index=False)
+        df_bdd_info.to_csv(save_path / f'info-{temp_name}.csv', index=False)
+        df_bdd_scores.to_csv(save_path / f'scores-{temp_name}.csv', index=False)
 
         # apply threshold
         if patterns.neurons != []:
@@ -404,8 +409,8 @@ def build_bdd_multi_etas(args):
         df_test.drop(idx_col_delete, axis=1, inplace=True)
 
         # save processed data and the BDD result
-        df_train.to_csv(save_path / f'{temp_name}_bdd_train_CUDD.csv', index=False)
-        df_test.to_csv(save_path / f'{temp_name}_bdd_test_CUDD.csv', index=False)
+        df_train.to_csv(temp_path / f'{temp_name}_bdd_train.csv', index=False)
+        df_test.to_csv(temp_path / f'{temp_name}_bdd_test.csv', index=False)
 
     # delete variables
     del BDD, patterns
@@ -460,12 +465,12 @@ def build_bdd(args):
         #     pickle.dump(patterns, f, pickle.HIGHEST_PROTOCOL)
 
         # save scores
-        df_bdd_info.to_csv(save_path / f'info-{temp_name}_CUDD.csv', index=False)
-        df_bdd_scores.to_csv(save_path / f'scores-{temp_name}_CUDD.csv', index=False)
+        df_bdd_info.to_csv(save_path / f'info-{temp_name}.csv', index=False)
+        df_bdd_scores.to_csv(save_path / f'scores-{temp_name}.csv', index=False)
 
         # save processed data and the BDD result
-        df_train.to_csv(save_path / f'{temp_name}_bdd_signle_eta_train_CUDD.csv', index=False)
-        df_test.to_csv(save_path / f'{temp_name}_bdd_signle_eta_test_CUDD.csv', index=False)
+        df_train.to_csv(save_path / f'{temp_name}_bdd_signle_eta_train.csv', index=False)
+        df_test.to_csv(save_path / f'{temp_name}_bdd_signle_eta_test.csv', index=False)
 
 
     # delete variables
