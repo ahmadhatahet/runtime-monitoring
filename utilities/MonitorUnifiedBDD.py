@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from datetime import datetime as dt
 from pathlib import Path
-import pickle
 import matplotlib.pyplot as plt
 from dd import cudd
 import time
@@ -141,7 +140,6 @@ class MonitorBDD:
 
     def add_dataframe(self, df, eta=0, eval_dfs=[]):
         """TODO"""
-        print(f'\teta: 0') # always strat with eta 0
 
         row = self.stats.shape[0]+1
         self.stats.loc[row, 'start_time'] = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
@@ -161,7 +159,6 @@ class MonitorBDD:
         self.stats.loc[row, 'num_reorder'] = bdd_stats['n_reorderings']
         self.stats.loc[row, 'num_neurons'] = len(self.neurons) if self.neurons != [] else self.num_neurons
         self.stats.loc[row, 'end_time'] = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
-        print(self.stats.loc[row])
 
         # add column for scoring
         if eval_dfs != []:
@@ -172,7 +169,6 @@ class MonitorBDD:
         if eta > 0:
             # evaluate starting from 1 degree of freedom
             for et in range(1, eta+1):
-                print(f'\teta: {et}')
 
                 row = self.stats.shape[0]+1
                 self.stats.loc[row, 'start_time'] = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
@@ -197,8 +193,6 @@ class MonitorBDD:
                 # add column for scoring
                 for eval_df in eval_dfs:
                     self.evaluate_dataframe(eval_df, et)
-
-                print(self.stats.loc[row])
 
         # return evaluated dataframes
         if eval_dfs != []:
@@ -380,19 +374,23 @@ def build_bdd_multi_etas(args):
     # save data and scores
     if save_path is not None:
         temp_name = thld_name
-        if neurons is not None:
+
+        if len(neurons) > 0 and save_path.name == 'raw':
             temp_name += "-neurons"
+        if len(neurons) > 0 and save_path.name == 'scaler_pca':
+            temp_name += "-components"
         # some bdds are too big to save
         # thus the processed data and bdd results will be saved instead
-        temp_path = Path('/tmp/ah19') / save_path.name
+        temp_path = Path('/tmp/ah19') / save_path.parent.name / save_path.name
         temp_path.mkdir(parents=True, exist_ok=True)
 
-        with open(temp_path / f'{temp_name}.pkl', "wb") as f:
-            pickle.dump(patterns, f, pickle.HIGHEST_PROTOCOL)
+        # multiprocessing can not save serialized objects
+        # from utilities.utils import save_pickle
+        # save_pickle(temp_path / f'{temp_name}-{eta}.pkl', patterns)
 
         # save scores
-        df_bdd_info.to_csv(save_path / f'info-{temp_name}.csv', index=False)
-        df_bdd_scores.to_csv(save_path / f'scores-{temp_name}.csv', index=False)
+        df_bdd_info.to_csv(save_path / f'info-{temp_name}-{eta}.csv', index=False)
+        df_bdd_scores.to_csv(save_path / f'scores-{temp_name}-{eta}.csv', index=False)
 
         # apply threshold
         if patterns.neurons != []:
@@ -409,14 +407,13 @@ def build_bdd_multi_etas(args):
         df_test.drop(idx_col_delete, axis=1, inplace=True)
 
         # save processed data and the BDD result
-        df_train.to_csv(temp_path / f'{temp_name}_bdd_train.csv', index=False)
-        df_test.to_csv(temp_path / f'{temp_name}_bdd_test.csv', index=False)
+        df_train.to_csv(temp_path / f'{temp_name}-{eta}_bdd_train.csv', index=False)
+        df_test.to_csv(temp_path / f'{temp_name}-{eta}_bdd_test.csv', index=False)
 
     # delete variables
     del BDD, patterns
     del df_train_scores, df_test_scores
     gc.collect()
-
 
     print(f'> Done! [ {thld_name} - eta: {eta} ]')
 
