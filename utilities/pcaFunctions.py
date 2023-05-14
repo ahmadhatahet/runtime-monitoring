@@ -72,8 +72,11 @@ def fitPCASingle(df, scaler=None, numNeurons=None):
 
     if scaler is not None: numNeurons = scaler.n_features_in_
     pca_ = PCA(n_components=numNeurons)
+    df = df[df.columns[:numNeurons]]
+
     if scaler is not None:
-        df = scaler.transform(df[df.columns[:numNeurons]])
+        df = scaler.transform(df)
+
     pca_.fit(df)
 
     return pca_
