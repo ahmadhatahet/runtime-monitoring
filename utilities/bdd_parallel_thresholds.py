@@ -33,7 +33,6 @@ def run_parallel(args):
     pca_ = None
     if LOAD_NEURONS and FALVOR != 'raw' :
         pca_ = load_pickle(path_lhl / f'{FALVOR}.pkl')
-        LOAD_NEURONS = False
 
 
     # output file name
@@ -51,7 +50,7 @@ def run_parallel(args):
 
     df_test = pd.read_csv(path_lhl_data / f"{FILENAME_POSTFIX}_{FALVOR}_test.csv")
 
-    neurons = None
+    neurons = []
     if LOAD_NEURONS and pca_ is None:
         neurons = load_json(path_lhl / f"neurons_scaler_pca.json")
 
@@ -123,19 +122,11 @@ def run_parallel(args):
         df_bdd_scores = pd.concat([r[1] for r in results]).reset_index(drop=True)
         df_bdd_scores.to_csv(path_bdd / f"all-thlds-scores-{eta}-{POSTFIX2}.csv", index=False)
 
+
     print("[" + "=" * 100 + "]")
     print("> Finished!")
     print("[" + "*" * 100 + "]")
 
 
 if __name__ == "__main__":
-    # example run
-    DATASET = "GTSRB"
-    POSTFIX = "Elastic32"
-    N = 40
-    FALVOR = 'raw'
-    LOAD_NEURONS = True
-
-    eta = 3
-
-    run_parallel((DATASET, POSTFIX, N, FALVOR, LOAD_NEURONS, eta))
+    ...
