@@ -6,6 +6,11 @@
                 "weight_decay": 5e-4
             }
         },
+        "scheduler": {
+            "CosineAnnealingLR": {
+                "T_max": 150
+            }
+        },
         "lhl_neurons": [
             50,
             80,
