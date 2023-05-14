@@ -1,11 +1,14 @@
 {
     "configuration": {
+        "dataset": "FashionMNIST",
         "optimizer": {
             "Adam": {}
         },
         "scheduler": {
             "MultiStepLR": {
-                "milestones": [7]
+                "milestones": [
+                    7
+                ]
             }
         },
         "lhl_neurons": [
@@ -15,7 +18,7 @@
         ],
         "flavors": [
             "raw",
-            "pca"
+            "scaler_pca"
         ],
         "subset_neurons": [
             1,
