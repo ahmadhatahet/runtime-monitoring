@@ -1,14 +1,11 @@
 {
     "configuration": {
         "optimizer": {
-            "SGD": {
-                "momentum": 0.9
-            }
+            "Adam": {}
         },
         "scheduler": {
-            "StepLR": {
-                "gamma": 0.1,
-                "step_size":10
+            "MultiStepLR": {
+                "milestones": [7]
             }
         },
         "lhl_neurons": [
@@ -31,11 +28,11 @@
         "dropout": 0.1
     },
     "model_config": {
-        "batch_size": 64,
+        "batch_size": 32,
         "lr": 0.01,
         "epochs": 25,
         "patience": 5,
-        "L2": 0.001,
-        "L1": 0.001
+        "L2": 1e-5,
+        "L1": 1e-5
     }
 }
