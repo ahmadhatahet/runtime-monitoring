@@ -662,9 +662,7 @@ def run_training_testing(
         if model_path is not None:
 
             # increase patience if no improvment
-            earlyStop(
-                epoch, lr_scheduler, optimizer, best_test_acc, epoch_test_acc, config
-            )
+            earlyStop(epoch, lr_scheduler, optimizer, best_test_acc, epoch_test_acc, config)
 
             model_path, best_test_acc, best_test_loss = save_checkpoint(
                 model,
@@ -702,10 +700,10 @@ def run_training_testing(
         )
 
     if model_path is not None:
-        plot_results(f"Losses", "Loss", train_losses, test_losses, np.argmax(test_accs))
-        plot_results(
-            f"Accuracy", "Accuracy", train_accs, test_accs, np.argmax(test_accs)
-        )
+        plot_results(f"Losses", "Loss", train_losses, test_losses, np.argmax(test_accs),
+                     save_path=model_path.parent / 'epochs_losses.jpg')
+        plot_results(f"Accuracy", "Accuracy", train_accs, test_accs, np.argmax(test_accs),
+                    save_path=model_path.parent / 'epochs_accuracy.jpg')
 
     return (
         train_losses,
