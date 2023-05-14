@@ -1,5 +1,6 @@
 {
     "configuration": {
+        "dataset": "Cifar10",
         "optimizer": {
             "SGD": {
                 "momentum": 0.9,
@@ -18,7 +19,7 @@
         ],
         "flavors": [
             "raw",
-            "pca"
+            "scaler_pca"
         ],
         "subset_neurons": [
             1,
