@@ -147,7 +147,7 @@ class MonitorBDD:
         start = time.perf_counter()
         patterns = self.applying_thlds(df)
 
-        for i in range(df.shape[0]):
+        for i in range(patterns.shape[0]):
             self.__add_one_pattern(patterns[i])
 
         build_time = round((time.perf_counter() - start) / 60, 3)
