@@ -363,7 +363,7 @@ def save_checkpoint(
             / f"{model_path.parent.name}-acc-{round(epoch_test_acc, 3)}-loss-{round(epoch_test_loss, 3)}.pth.tar"
         )
         # Save checkpoint
-        torch.save(model.state_dict(), model_path)
+        torch.save({'model': model.state_dict()}, model_path)
         # reset patience
         config["currentPatience"] = 0
 
@@ -375,7 +375,7 @@ def save_checkpoint(
 
 def load_checkpoint(model, model_path):
     """Load checkpoint"""
-    model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load(model_path)['model'])
 
 
 def export_last_hidden_layer(
