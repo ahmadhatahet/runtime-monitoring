@@ -40,6 +40,8 @@ class MonitorBDD:
             'build_time': pd.Series(dtype=np.float16),
             'size_mb': pd.Series(dtype=np.float16),
             'reorder_time': pd.Series(dtype=np.float16),
+            'num_patterns': pd.Series(dtype=np.int32),
+            'num_unique_patterns': pd.Series(dtype=np.int32),
             'num_reorder': pd.Series(dtype=np.int8),
             'num_neurons': pd.Series(dtype=np.int16),
             'start_time': pd.Series(dtype='str'),
@@ -76,11 +78,10 @@ class MonitorBDD:
 
     def applying_thlds(self, df):
         """TODO"""
-
         if self.neurons != []:
-            df = df[df.columns[self.neurons]].drop_duplicates()
+            df = df[df.columns[self.neurons]]
         else:
-            df = df[df.columns[:self.num_neurons]].drop_duplicates()
+            df = df[df.columns[:self.num_neurons]]
 
         df_thld = (df >=  self.thld_1).astype('int8')
 
@@ -146,6 +147,12 @@ class MonitorBDD:
 
         start = time.perf_counter()
         patterns = self.applying_thlds(df)
+
+        # only unique patterns
+        patterns = np.unique(patterns, axis=0)
+
+        self.stats.loc[row, 'num_patterns'] = df.shape[0]
+        self.stats.loc[row, 'num_unique_patterns'] = patterns.shape[0]
 
         for i in range(patterns.shape[0]):
             self.__add_one_pattern(patterns[i])
