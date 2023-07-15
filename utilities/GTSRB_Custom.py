@@ -16,8 +16,8 @@ class GTSRB(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-        img = Image.open(self.root / self.data.iloc[index, 0])
-        label = tensor( self.data.iloc[index, 1] )
+        label = tensor( self.data.iloc[index, 0] )
+        img = Image.open(self.root / self.data.iloc[index, 1])
 
         if self.transform:
             img = self.transform(img)
