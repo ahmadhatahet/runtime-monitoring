@@ -303,24 +303,14 @@ def get_dataLoader(
     data, batch_size=128, shuffle=False, sampler=None, num_workers=0, collate_fn=None
 ):
 
-    if sampler is not None:
-        return DataLoader(
-            data,
-            batch_size=batch_size,
-            sampler=sampler,
-            num_workers=num_workers,
-            collate_fn=collate_fn,
-        )
-
     return DataLoader(
         data,
         batch_size=batch_size,
-        shuffle=shuffle,
         sampler=sampler,
         num_workers=num_workers,
         collate_fn=collate_fn,
+        drop_last=True
     )
-
 
 def get_mean_std(dataloader):
 
