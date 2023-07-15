@@ -18,7 +18,7 @@ def load_rc_settings_grid():
         rc={'figure.figsize': (12, 5), 'font.size': 14}
     )
 
-def show_images_loader(loader, title='', feature_names=None):
+def show_images_loader(loader, title='', feature_names=None, transform=None):
     """show 6 images from dataloader"""
     plt.close('all')
 
@@ -35,6 +35,10 @@ def show_images_loader(loader, title='', feature_names=None):
 
 
     for axs, i in zip(ax.flatten(), idx):
+
+        if transform is not None:
+            x[i] = transform(x[i])
+
         if x.shape[1] == 3:
             axs.imshow(x[i].permute(1,2,0))
         else:
