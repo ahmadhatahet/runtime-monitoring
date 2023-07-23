@@ -1,4 +1,4 @@
-DATASET = 'GTSRB'
+DATASET = 'FashionMNIST'
 SEED = 42
 CUDA = 0
 GPU_NAME = f'cuda:{CUDA}'
@@ -60,6 +60,7 @@ paths = fetchPaths(base, DATASET, '', False)
 
 path_data = paths['data']
 path_lhl = paths['lhl']
+path_stats = paths['saved_models'].parent.parent
 
 configs = load_json(paths['configuration'])
 config = configs['configuration']
@@ -142,8 +143,21 @@ def start_training_testing(model_name, model, loss_function, optimizer, schedule
     return run_training_testing(**kwargs)
 
 
-# Run Training
+model_stats = pd.DataFrame({
+    'lhl':pd.Series(dtype=str),
+    'optim':pd.Series(dtype=str),
+    'scheduler':pd.Series(dtype=str),
+    'epochs':pd.Series(dtype=np.uint8),
+    'best_epoch':pd.Series(dtype=np.uint8),
+    'train_losses':pd.Series(dtype=object),
+    'test_losses':pd.Series(dtype=object),
+    'train_accs':pd.Series(dtype=object),
+    'test_accs':pd.Series(dtype=object),
+    'test_loss':pd.Series(dtype=np.float16),
+    'test_acc':pd.Series(dtype=np.float16)
+})
 
+# Run Training
 for lhl in config['lhl_neurons']:
 
     # model postfix
@@ -162,6 +176,9 @@ for lhl in config['lhl_neurons']:
     train_losses, test_losses, train_accs, test_accs, test_loss, test_acc, confusion_matrix_test, best_model_name = \
     start_training_testing(model_name, model, loss_function, optimizer, scheduler)
 
+    # save stats
+    model_stats.loc[model_stats.shape[0]+1] = [lhl, optim_name, scheduler_name, len(train_losses), np.argmax(test_accs), train_losses, test_losses, train_accs, test_accs, test_loss, test_acc]
+
     # load best model
     load_checkpoint(model, best_model_name)
 
@@ -173,6 +190,9 @@ for lhl in config['lhl_neurons']:
     export_last_hidden_layer(trainloader, model, device, lhl, None, path_lhl_raw, model_name, 'raw_train')
     export_last_hidden_layer(testloader, model, device, lhl, None, path_lhl_raw, model_name, 'raw_test')
 
+
+# save model stats csv
+model_stats.to_csv(path_stats / f'{DATASET}_model_stats.csv', index=False)
 
 # Export PCA
 
