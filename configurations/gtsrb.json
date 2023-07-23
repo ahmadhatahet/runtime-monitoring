@@ -1,0 +1,40 @@
+{
+    "configuration": {
+        "dataset": "GTSRB",
+        "optimizer": {
+            "AdamW": {}
+        },
+        "scheduler": {
+            "MultiStepLR": {
+                "milestones": [5, 20, 30, 35]
+            }
+        },
+        "lhl_neurons": [
+            30,
+            50,
+            80,
+            150
+        ],
+        "flavors": [
+            "raw",
+            "pca"
+        ],
+        "subset_neurons": [
+            1,
+            0
+        ],
+        "eta": 4
+    },
+    "model_setup": {
+        "batchnorm": 1,
+        "dropout": 0.25
+    },
+    "model_config": {
+        "batch_size": 32,
+        "lr": 0.01,
+        "epochs": 25,
+        "patience": 10,
+        "L2": 1e-5,
+        "L1": 1e-5
+    }
+}
