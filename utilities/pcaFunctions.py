@@ -82,7 +82,12 @@ def fitPCASingle(df, scaler=None, numNeurons=None):
     return pca_
 
 
-def applyPCASingle(pca, df, scaler=None, numNeurons=None):
+def applyPCASingle(df, scaler=None, pca=None, numNeurons=None):
+
+    return_pca = False
+    if pca is None:
+        return_pca = True
+        pca = fitPCASingle(df, scaler, numNeurons)
 
     if numNeurons is None: numNeurons = pca.n_components
     temp = df[df.columns[:numNeurons]]
@@ -93,6 +98,9 @@ def applyPCASingle(pca, df, scaler=None, numNeurons=None):
     for col in df.columns[numNeurons:].tolist():
         temp[col] = df[col].to_numpy()
 
+    if return_pca:
+        return pca, temp
+
     return temp
 
 
@@ -100,22 +108,25 @@ def numComponents(pca, var_thld=0.9):
     return sum(np.cumsum(pca.explained_variance_ratio_).round(2) <= var_thld)
 
 
-def neuronsLoadingsSingle(pca, numNeurons=None, var_thld=0.9, loadings_thld=0.5):
+def neuronsLoadingsSingle(pca, numNeurons=None, var_thld=0.9, loadings_thld=0.2, expl_var_thld=0.05):
 
     num_component = sum(np.cumsum(pca.explained_variance_ratio_).round(2) <= var_thld)
     if numNeurons is None: numNeurons = pca.n_components
 
     pca_components = DataFrame(
         pca.components_[:,:num_component],
-        columns=[f'PC_{i}' for i in range(num_component)],
-        index=[f'x{i}' for i in range(numNeurons)]
+        columns=[f'PC_{i}' for i in range(1, num_component+1)],
+        index=[f'x{i}' for i in range(1, numNeurons+1)]
     )
 
-    pca_loadings = pca_components * np.sqrt(pca.explained_variance_[:num_component])
+    pca_loadings = (pca_components * np.sqrt(pca.explained_variance_[:num_component])).abs()
+    var_expl_component = (pca.explained_variance_[:num_component] / pca.explained_variance_[:num_component].sum())
+    neuron_loadings = ((pca_loadings >= loadings_thld) * var_expl_component).sum(axis=1)
 
-    neurons_loadings = (pca_loadings.abs() >= loadings_thld).any(axis=1)
+    gte_mean = neuron_loadings[neuron_loadings >= neuron_loadings.mean()].index.to_list()
+    top_third =neuron_loadings.sort_values(ascending=False)[:numNeurons // 3].index.to_list()
 
-    return neurons_loadings[neurons_loadings == True].index.tolist()
+    return gte_mean, top_third
 
 if __name__ == "__main__":
     ...
