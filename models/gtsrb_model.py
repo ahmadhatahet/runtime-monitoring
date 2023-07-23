@@ -35,13 +35,13 @@ class GTSRB_CNN(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
 
 
-        self.cn1 = nn.Conv2d(channels, 128, 5, bias=bias)
-        self.bn1 = nn.BatchNorm2d(128)
+        self.cn1 = nn.Conv2d(channels, 256, 5, bias=bias)
+        self.bn1 = nn.BatchNorm2d(256)
 
-        self.cn2 = nn.Conv2d(128, 128, 3, bias=bias)
-        self.bn2 = nn.BatchNorm2d(128)
+        self.cn2 = nn.Conv2d(256, 256, 3, bias=bias)
+        self.bn2 = nn.BatchNorm2d(256)
 
-        self.cn3 = nn.Conv2d(128, 64, 2, bias=bias)
+        self.cn3 = nn.Conv2d(256, 64, 2, bias=bias)
         self.bn3 = nn.BatchNorm2d(64)
 
         self.cn4 = nn.Conv2d(64, 64, 2, bias=bias)
