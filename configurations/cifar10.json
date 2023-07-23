@@ -2,17 +2,15 @@
     "configuration": {
         "dataset": "Cifar10",
         "optimizer": {
-            "SGD": {
-                "momentum": 0.9,
-                "weight_decay": 5e-4
-            }
+            "AdamW": {}
         },
         "scheduler": {
-            "CosineAnnealingLR": {
-                "T_max": 150
+            "ReduceLROnPlateau": {
+                "mode":"max", "patience": 5, "min_lr":1e-6
             }
         },
         "lhl_neurons": [
+            30,
             50,
             80,
             150
@@ -29,14 +27,14 @@
     },
     "model_setup": {
         "batchnorm": 1,
-        "dropout": 0.1
+        "dropout": 0.25
     },
     "model_config": {
-        "batch_size": 128,
-        "lr": 0.001,
-        "epochs": 150,
+        "batch_size": 64,
+        "lr": 1e-1,
+        "epochs": 250,
         "patience": 5,
-        "L2": 0.0,
-        "L1": 0.0
+        "L2": 1e-5,
+        "L1": 1e-5
     }
 }
