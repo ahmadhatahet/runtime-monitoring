@@ -36,9 +36,10 @@ transformers = {
 
     'cifar10': {
         'train': T.Compose([
-            T.ToTensor(),
-            T.RandomCrop(32, padding=4),
             T.RandomHorizontalFlip(),
+            T.RandomCrop(32, padding=4),
+            # T.RandomVerticalFlip(),
+            T.ToTensor(),
             T.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
         ]),
         'test': T.Compose([
