@@ -24,85 +24,78 @@ class Cifar10_CNN(nn.Module):
             "kaiming_uniform": nn.init.kaiming_uniform_,
         }
 
+        self.conv = nn.Sequential(
+            nn.Conv2d(self.channels, 256, 3, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Dropout2d(self.dropout_p),
 
-        self.relu = nn.ReLU()
-        self.flatten = nn.Flatten()
-        # scaling data
-        self.scaleInputs = nn.BatchNorm2d(channels)
-        self.dropout_l = nn.Dropout(self.dropout_p)
-        self.pool = nn.MaxPool2d(2, 2)
+            nn.Conv2d(256, 256, 3, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Dropout2d(self.dropout_p),
 
-        self.cn1 = nn.Conv2d(channels, 600, 3, padding=3, bias=bias)
-        self.bn1 = nn.BatchNorm2d(600)
+            nn.Conv2d(256, 128, 3, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Dropout2d(self.dropout_p),
 
-        self.cn2 = nn.Conv2d(600, 600, 3, bias=bias)
-        self.bn2 = nn.BatchNorm2d(600)
+            nn.Conv2d(128, 128, 3, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Dropout2d(self.dropout_p)
+        )
 
-        self.cn3 = nn.Conv2d(600, 300, 3, bias=bias)
-        self.bn3 = nn.BatchNorm2d(300)
+        self.linear = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(128*24*24, 2048, bias=False),
+            nn.BatchNorm1d(2048),
+            nn.ReLU(),
+            nn.Dropout1d(self.dropout_p),
 
-        self.cn4 = nn.Conv2d(300, 300, 3, padding=3, bias=bias)
-        self.bn4 = nn.BatchNorm2d(300)
+            nn.Linear(2048, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Dropout1d(self.dropout_p),
 
-        self.cn5 = nn.Conv2d(300, 300, 3, bias=bias)
-        self.bn5 = nn.BatchNorm2d(300)
+            nn.Linear(1024, self.last_hidden_neurons, bias=False)
+        )
 
-        self.cn6 = nn.Conv2d(300, 100, 3, bias=bias)
-        self.bn6 = nn.BatchNorm2d(100)
+        self.bn = nn.BatchNorm1d(self.last_hidden_neurons)
 
-        self.fc7 = nn.Linear(100 * 8 * 8, 100, bias=bias)
-        self.bn7 = nn.BatchNorm1d(100)
+        # expand all layers in sequential order
+        self.output = nn.Linear(self.last_hidden_neurons, self.num_classes, bias=False)
 
-        self.fc8 = nn.Linear(100, 300, bias=bias)
-        self.bn8 = nn.BatchNorm1d(300)
-
-        self.fc9 = nn.Linear(300, last_hidden_neurons, bias=bias)
-        self.bn9 = nn.BatchNorm1d(last_hidden_neurons)
-
-        self.output = nn.Linear(last_hidden_neurons, outneurons, bias=bias)
-
-        if weight_init:
-            self.__weight_init(weights[weight_init], bias)
+        # if weight_init:
+        #     self.__weight_init(weights[weight_init], bias)
 
     def forward(self, x):
 
         x = self._train(x)
-        if self.batchnorm: x = self.bn9(x)
-        x = self.relu(x)
+
+        x = self.bn(x)
+        x = nn.ReLU()(x)
+        x = nn.Dropout1d(self.dropout_p)(x)
+
         x = self.output(x)
 
         return x
 
 
     def _train(self, x):
-
-        x = self.scaleInputs(x)
-
-        x = self.relu(self.bn1(self.cn1(x)))
-        x = self.relu(self.bn2(self.cn2(x)))
-        x = self.pool(self.relu(self.bn3(self.cn3(x))))
-
-        x = self.relu(self.bn4(self.cn4(x)))
-        x = self.relu(self.bn5(self.cn5(x)))
-        x = self.pool(self.relu(self.bn6(self.cn6(x))))
-
-        x = self.flatten(x)
-        x = self.dropout_l(x)
-        x = self.relu(self.bn7(self.fc7(x)))
-        x = self.dropout_l(x)
-        x = self.relu(self.bn8(self.fc8(x)))
-
-        x = self.dropout_l(x)
-        x = self.fc9(x)
-
+        x = self.conv(x)
+        x = self.linear(x)
         return x
 
     def output_last_layer(self, x):
 
         x = self._train(x)
         out = x.clone().detach()
-        if self.batchnorm: x = self.bn9(x)
-        x = self.relu(x)
+
+        x = nn.BatchNorm1d(self.last_hidden_neurons)(x)
+        x = nn.ReLU()(x)
+        x = nn.Dropout1d(self.dropout_p)(x)
+
         x = self.output(x)
 
         return out, x
