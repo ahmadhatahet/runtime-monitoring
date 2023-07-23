@@ -238,26 +238,17 @@ def get_dataset(
         )
 
 
-def split_data(data, split_size, seed=None):
+def split_data(data, split_size):
     """
     Split data into two is split_size is a list using PyTorch random_split
     Other split is to return the indecies of a small balanced subset using sklearn
     """
-    if seed is None:
-
-        if not isinstance(split_size, list):
-            _, indexs, _, _ = train_test_split(
-                list(range(len(data))), data, test_size=split_size, stratify=data,random_state=seed)
-            return indexs
-
-        return random_split(data, split_size)
-
     if not isinstance(split_size, list):
         _, indexs, _, _ = train_test_split(
             list(range(len(data))), data, test_size=split_size, stratify=data)
         return indexs
 
-    return random_split(data, split_size, generator=torch.Generator().manual_seed(seed))
+    return random_split(data, split_size, generator=torch.Generator())
 
 
 def transformer_augmentation_fn():
