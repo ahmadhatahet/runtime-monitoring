@@ -671,10 +671,15 @@ def run_training_testing(
             mb.write("Test Accuracy is over 98% => Early Stop!")
             break
 
+    train_loss, train_acc, confusion_matrix_train = None, None, []
     test_loss, test_acc, confusion_matrix_test = None, None, []
 
     if model_path is not None:
         load_checkpoint(model, model_path)
+
+        train_loss, train_acc, confusion_matrix_train = test_epoch(
+            trainloader, model, loss_function, map_classes, skip_classes, device, mb
+        )
 
         test_loss, test_acc, confusion_matrix_test = test_epoch(
             testloader, model, loss_function, map_classes, skip_classes, device, mb
@@ -688,11 +693,14 @@ def run_training_testing(
 
     return (
         train_losses,
-        test_losses,
         train_accs,
+        test_losses,
         test_accs,
+        train_loss,
+        train_acc,
         test_loss,
         test_acc,
+        confusion_matrix_train,
         confusion_matrix_test,
         model_path,
     )
