@@ -26,30 +26,44 @@ class FashionMNIST_CNN(nn.Module):
         }
 
         self.relu = nn.ReLU()
-        self.flatten = nn.Flatten()
-        # scaling data
         self.scaleInputs = nn.BatchNorm2d(channels)
-        self.dropout_l = nn.Dropout(self.dropout_p)
-        self.pool = nn.MaxPool2d(2, 2)
 
+        self.conv = nn.Sequential(
+            nn.Conv2d(channels, 256, 3, bias=bias),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
 
-        self.cn1 = nn.Conv2d(channels, 256, 3, bias=bias)
-        self.bn1 = nn.BatchNorm2d(256)
+            nn.Conv2d(256, 256, 3, bias=bias),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
 
-        self.cn2 = nn.Conv2d(256, 256, 3, bias=bias)
-        self.bn2 = nn.BatchNorm2d(256)
+            nn.MaxPool2d(2, 2),
 
-        self.cn3 = nn.Conv2d(256, 128, 2, bias=bias)
-        self.bn3 = nn.BatchNorm2d(128)
+            nn.Conv2d(256, 128, 2, bias=bias),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
 
-        self.cn4 = nn.Conv2d(128, 128, 2, bias=bias)
-        self.bn4 = nn.BatchNorm2d(128)
+            nn.Conv2d(128, 128, 2, bias=bias),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
 
-        self.fc5 = nn.Linear(128 * 5 * 5, 500, bias=bias)
-        self.bn5 = nn.BatchNorm1d(500)
+            nn.MaxPool2d(2, 2),
+        )
 
-        self.fc6 = nn.Linear(500, last_hidden_neurons, bias=bias)
-        self.bn6 = nn.BatchNorm1d(last_hidden_neurons)
+        in_features_fc, last_conv_out_feature = self.conv_params()
+
+        self.linear = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout1d(self.dropout_p),
+
+            nn.Linear(last_conv_out_feature * in_features_fc * in_features_fc, 500, bias=bias),
+            nn.BatchNorm1d(500),
+            nn.ReLU(),
+
+            nn.Linear(500, last_hidden_neurons, bias=bias)
+        )
+
+        self.bn = nn.BatchNorm1d(last_hidden_neurons)
 
         self.output = nn.Linear(last_hidden_neurons, outneurons, bias=bias)
 
@@ -61,7 +75,7 @@ class FashionMNIST_CNN(nn.Module):
     def forward(self, x):
 
         x = self._train(x)
-        if self.batchnorm: x = self.bn6(x)
+        x = self.bn(x)
         x = self.relu(x)
         x = self.output(x)
 
@@ -72,16 +86,8 @@ class FashionMNIST_CNN(nn.Module):
 
         if self.first_layer_norm: x = self.scaleInputs(x)
 
-        x = self.relu(self.bn1(self.cn1(x)))
-        x = self.pool(self.relu(self.bn2(self.cn2(x))))
-
-        x = self.relu(self.bn3(self.cn3(x)))
-        x = self.pool(self.relu(self.bn4(self.cn4(x))))
-
-        x = self.flatten(x)
-        x = self.dropout_l(x)
-        x = self.relu(self.bn5(self.fc5(x)))
-        x = self.fc6(x)
+        x = self.conv(x)
+        x = self.linear(x)
 
         return x
 
@@ -89,7 +95,7 @@ class FashionMNIST_CNN(nn.Module):
 
         x = self._train(x)
         out = x.clone().detach()
-        if self.batchnorm: x = self.bn6(x)
+        x = self.bn(x)
         x = self.relu(x)
         x = self.output(x)
 
@@ -148,3 +154,24 @@ class FashionMNIST_CNN(nn.Module):
             if isinstance(m, nn.BatchNorm1d) or isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+
+    def __calc_param_conv(self, h_w, layer):
+        return (h_w + (2 * layer.padding[0]) - (1 * (layer.kernel_size[0] - 1)) - 1)// layer.stride[0] + 1
+
+    def __calc_param_pool(self, h_w, layer):
+        return (h_w + (2 * layer.padding) - (1 * (layer.kernel_size - 1)) - 1)// layer.stride + 1
+
+    def conv_params(self):
+
+        h_w = self.img_dim
+        last_conv_out_feature = 0
+
+        for m in self.modules():
+
+            if isinstance(m, nn.Conv2d):
+                last_conv_out_feature = m.out_channels
+                h_w = self.__calc_param_conv(h_w, m)
+            if isinstance(m, nn.MaxPool2d) or isinstance(m, nn.AvgPool2d):
+                h_w = self.__calc_param_pool(h_w, m)
+
+        return h_w, last_conv_out_feature
