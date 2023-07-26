@@ -2,21 +2,17 @@
     "configuration": {
         "dataset": "MNIST",
         "optimizer": {
-            "SGD": {
-                "momentum": 0.9
-            }
+            "SGD": {}
         },
         "scheduler": {
             "MultiStepLR": {
-                "milestones": [
-                    7
-                ]
+                "milestones": [7]
             }
         },
         "lhl_neurons": [
+            5,
             30,
-            60,
-            100
+            60
         ],
         "flavors": [
             "raw",
@@ -30,14 +26,14 @@
     },
     "model_setup": {
         "batchnorm": 1,
-        "dropout": 0.1
+        "dropout": 0.2
     },
     "model_config": {
-        "batch_size": 64,
+        "batch_size": 32,
         "lr": 0.01,
-        "epochs": 10,
+        "epochs": 15,
         "patience": 2,
-        "L2": 0.001,
-        "L1": 0.001
+        "L2": 1e-3,
+        "L1": 1e-3
     }
 }
