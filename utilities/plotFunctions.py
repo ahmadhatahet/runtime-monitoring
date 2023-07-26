@@ -15,7 +15,7 @@ def load_rc_settings_grid():
     """figuare settings for show_images_loader()"""
     sns.set_theme(
         style='whitegrid',
-        rc={'figure.figsize': (12, 5), 'font.size': 14}
+        rc={'figure.figsize': (12, 5), 'font.size': 10}
     )
 
 def show_images_loader(loader, title='', feature_names=None, transform=None):
