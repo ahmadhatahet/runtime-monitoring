@@ -25,8 +25,8 @@ class MonitorBDD:
         self.num_bits = 2 if thld_2 is not None or thld_3 is not None else 1
         self.num_vars = num_neurons * self.num_bits
 
-        self.neurons = neurons
-        if self.neurons != []:
+        self.neurons = np.array(neurons)
+        if self.neurons.shape[0] != 0:
             self.neurons = np.array([int(n[1:]) for n in neurons])
             self.thld_1 = self.thld_1[self.neurons]
             self.thld_2 = self.thld_2[self.neurons] if self.thld_2 is not None else None
@@ -53,7 +53,9 @@ class MonitorBDD:
         """Add variables to BDD based on nymber of neurons"""
 
         # generate vars either x0_0 or x0_0 and x0_1 per neuron
-        vars_range = self.neurons if self.neurons != [] else range(self.num_neurons)
+        if self.neurons.shape[0] != 0: vars_range = self.neurons
+        else: vars_range = range(self.num_neurons)
+
         vars = [f'x{n}_{i}' for i in range(self.num_bits) for n in vars_range]
 
         # add vars to bdd
@@ -78,7 +80,8 @@ class MonitorBDD:
 
     def applying_thlds(self, df):
         """TODO"""
-        if self.neurons != []:
+
+        if self.neurons.shape[0] != 0:
             df = df[df.columns[self.neurons]]
         else:
             df = df[df.columns[:self.num_neurons]]
@@ -164,7 +167,7 @@ class MonitorBDD:
         self.stats.loc[row, 'size_mb'] = round( bdd_stats['mem'] * 1e-6, 3) # to mb
         self.stats.loc[row, 'reorder_time'] = bdd_stats['reordering_time'] / 60 # in minutes
         self.stats.loc[row, 'num_reorder'] = bdd_stats['n_reorderings']
-        self.stats.loc[row, 'num_neurons'] = len(self.neurons) if self.neurons != [] else self.num_neurons
+        self.stats.loc[row, 'num_neurons'] = len(self.neurons) if self.neurons.shape[0] != 0 else self.num_neurons
         self.stats.loc[row, 'end_time'] = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
 
         # add column for scoring
@@ -194,7 +197,7 @@ class MonitorBDD:
                 self.stats.loc[row, 'size_mb'] = round( self.bdd.statistics()['mem'] * 1e-6, 3)
                 self.stats.loc[row, 'reorder_time'] = bdd_stats['reordering_time']
                 self.stats.loc[row, 'num_reorder'] = bdd_stats['n_reorderings']
-                self.stats.loc[row, 'num_neurons'] = len(self.neurons) if self.neurons != [] else self.num_neurons
+                self.stats.loc[row, 'num_neurons'] = len(self.neurons) if self.neurons.shape[0] != 0 else self.num_neurons
                 self.stats.loc[row, 'end_time'] = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
 
                 # add column for scoring
@@ -336,7 +339,7 @@ class MonitorBDD:
         df = df.loc[df['true'] == true].set_index('y')
         mean_ = df['outOfPattern'].mean().round(3)
 
-        neurons = f' Number of neuron: {len(self.neurons)}' if self.neurons != [] else None
+        neurons = f' Number of neuron: {len(self.neurons)}' if self.neurons.shape[0] != 0 else None
         title = f'{stage} - {true} - #out of pattern: {mean_}{neurons}\n'
         filename = f'{stage.lower()}_{true}_outOfPattern'
         color = 'teal' if true else 'orange'
@@ -378,34 +381,39 @@ def build_bdd_multi_etas(args):
     df_bdd_scores = pd.concat([df_train_scores, df_test_scores]).reset_index(drop=True)
     df_bdd_scores['thld'] = thld_name
 
+
+
     # save data and scores
     if save_path is not None:
         temp_name = thld_name
 
         if len(neurons) > 0 and save_path.name == 'raw':
             temp_name += "-neurons"
-        if len(neurons) > 0 and save_path.name == 'scaler_pca':
-            temp_name += "-components"
+        # this combination is not valid
+        # if len(neurons) > 0 and save_path.name == 'scaler_pca':
+        #     temp_name += "-neurons-pca"
+
         # some bdds are too big to save
         # thus the processed data and bdd results will be saved instead
-        temp_path = Path('/tmp/ah19') / save_path.parent.name / save_path.name
-        temp_path.mkdir(parents=True, exist_ok=True)
+        # temp_path = Path('/tmp/ah19') / save_path.parent.name / save_path.name
+        # temp_path.mkdir(parents=True, exist_ok=True)
 
         # multiprocessing can not save serialized objects
         # from utilities.utils import save_pickle
         # save_pickle(temp_path / f'{temp_name}-{eta}.pkl', patterns)
 
         # save scores
-        df_bdd_info.to_csv(save_path / f'info-{temp_name}-{eta}.csv', index=False)
-        df_bdd_scores.to_csv(save_path / f'scores-{temp_name}-{eta}.csv', index=False)
+        # df_bdd_info.to_csv(save_path / f'info-{thld_name}-{eta}-{temp_name}.csv', index=False)
+        # df_bdd_scores.to_csv(save_path / f'scores-{thld_name}-{eta}-{temp_name}.csv', index=False)
 
         # apply threshold
-        if patterns.neurons != []:
+        if patterns.neurons.shape[0] != 0:
             idx_col_keep = patterns.neurons
             idx_col_delete = np.delete(df_train.columns[:patterns.num_neurons], idx_col_keep)
         else:
             idx_col_keep = np.arange(patterns.num_neurons)
             idx_col_delete = np.delete(df_train.columns[:patterns.num_neurons], idx_col_keep)
+
 
         df_train[df_train.columns[idx_col_keep]] = patterns.applying_thlds(df_train)
         df_train.drop(idx_col_delete, axis=1, inplace=True)
@@ -414,8 +422,8 @@ def build_bdd_multi_etas(args):
         df_test.drop(idx_col_delete, axis=1, inplace=True)
 
         # save processed data and the BDD result
-        df_train.to_csv(temp_path / f'{temp_name}-{eta}_bdd_train.csv', index=False)
-        df_test.to_csv(temp_path / f'{temp_name}-{eta}_bdd_test.csv', index=False)
+        df_train.to_csv(save_path / f'data-{thld_name}-{eta}-{temp_name}_bdd_train.csv', index=False)
+        df_test.to_csv(save_path / f'data-{thld_name}-{eta}-{temp_name}_bdd_test.csv', index=False)
 
     # delete variables
     del BDD, patterns
