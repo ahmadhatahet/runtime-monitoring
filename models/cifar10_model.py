@@ -46,9 +46,11 @@ class Cifar10_CNN(nn.Module):
             nn.Dropout2d(self.dropout_p)
         )
 
+        in_features_fc, last_conv_out_feature = self.conv_params()
+
         self.linear = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(128*24*24, 2048, bias=False),
+            nn.Linear(last_conv_out_feature * in_features_fc * in_features_fc, 2048, bias=False),
             nn.BatchNorm1d(2048),
             nn.ReLU(),
             nn.Dropout1d(self.dropout_p),
@@ -66,8 +68,8 @@ class Cifar10_CNN(nn.Module):
         # expand all layers in sequential order
         self.output = nn.Linear(self.last_hidden_neurons, self.num_classes, bias=False)
 
-        # if weight_init:
-        #     self.__weight_init(weights[weight_init], bias)
+        if weight_init:
+            self.__weight_init(weights[weight_init], bias)
 
     def forward(self, x):
 
@@ -153,3 +155,24 @@ class Cifar10_CNN(nn.Module):
             if isinstance(m, nn.BatchNorm1d) or isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+
+    def __calc_param_conv(self, h_w, layer):
+        return (h_w + (2 * layer.padding[0]) - (1 * (layer.kernel_size[0] - 1)) - 1)// layer.stride[0] + 1
+
+    def __calc_param_pool(self, h_w, layer):
+        return (h_w + (2 * layer.padding) - (1 * (layer.kernel_size - 1)) - 1)// layer.stride + 1
+
+    def conv_params(self):
+
+        h_w = self.img_dim
+        last_conv_out_feature = 0
+
+        for m in self.modules():
+
+            if isinstance(m, nn.Conv2d):
+                last_conv_out_feature = m.out_channels
+                h_w = self.__calc_param_conv(h_w, m)
+            if isinstance(m, nn.MaxPool2d) or isinstance(m, nn.AvgPool2d):
+                h_w = self.__calc_param_pool(h_w, m)
+
+        return h_w, last_conv_out_feature
