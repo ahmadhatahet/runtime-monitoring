@@ -32,22 +32,15 @@ def fitScalerClasses(df, classesColumn, numNeurons):
 
 
 
-def applyStandardScalerSingle(df, numNeurons, scaler=None):
+def applyStandardScalerSingle(df, scaler=None, numNeurons=None):
     """Apply scaler to dataframe"""
+    if numNeurons is None:
+        numNeurons = scaler.n_features_in_
 
-    return_scaler = False
-    if scaler is None:
-        scaler = fitStandardScalerSingle(df, numNeurons)
-        return_scaler = True
-
-    numNeurons = scaler.n_features_in_
     dfScaler = DataFrame( scaler.transform(df.iloc[:, :numNeurons]), columns=df.columns[:numNeurons] )
     # readd non neuron columns
     for col in df.columns[numNeurons:].tolist():
         dfScaler[col] = df[col].to_numpy()
-
-    if return_scaler:
-        return scaler, dfScaler
 
     return dfScaler
 
