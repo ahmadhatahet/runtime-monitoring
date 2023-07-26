@@ -2,19 +2,17 @@
     "configuration": {
         "dataset": "FashionMNIST",
         "optimizer": {
-            "Adam": {}
+            "AdamW": {}
         },
         "scheduler": {
             "MultiStepLR": {
-                "milestones": [
-                    7
-                ]
+                "milestones": [20]
             }
         },
         "lhl_neurons": [
+            5,
             30,
-            60,
-            100
+            60
         ],
         "flavors": [
             "raw",
@@ -28,14 +26,14 @@
     },
     "model_setup": {
         "batchnorm": 1,
-        "dropout": 0.1
+        "dropout": 0.2
     },
     "model_config": {
-        "batch_size": 32,
-        "lr": 0.01,
-        "epochs": 25,
+        "batch_size": 64,
+        "lr": 0.001,
+        "epochs": 30,
         "patience": 5,
-        "L2": 1e-5,
-        "L1": 1e-5
+        "L2": 1e-4,
+        "L1": 0
     }
 }
