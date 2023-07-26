@@ -84,12 +84,9 @@ def fitPCASingle(df, scaler=None, numNeurons=None):
 
 def applyPCASingle(df, scaler=None, pca=None, numNeurons=None):
 
-    return_pca = False
-    if pca is None:
-        return_pca = True
-        pca = fitPCASingle(df, scaler, numNeurons)
+    if numNeurons is None:
+        numNeurons = pca.n_components
 
-    if numNeurons is None: numNeurons = pca.n_components
     temp = df[df.columns[:numNeurons]]
     if scaler is not None:
         temp = scaler.transform(temp)
@@ -98,8 +95,6 @@ def applyPCASingle(df, scaler=None, pca=None, numNeurons=None):
     for col in df.columns[numNeurons:].tolist():
         temp[col] = df[col].to_numpy()
 
-    if return_pca:
-        return pca, temp
 
     return temp
 
@@ -108,7 +103,7 @@ def numComponents(pca, var_thld=0.9):
     return sum(np.cumsum(pca.explained_variance_ratio_).round(2) <= var_thld)
 
 
-def neuronsLoadingsSingle(pca, numNeurons=None, var_thld=0.9, loadings_thld=0.2, expl_var_thld=0.05):
+def neuronsLoadingsSingle(pca, numNeurons=None, var_thld=0.9, loadings_thld=0.2):
 
     num_component = sum(np.cumsum(pca.explained_variance_ratio_).round(2) <= var_thld)
     if numNeurons is None: numNeurons = pca.n_components
@@ -116,7 +111,7 @@ def neuronsLoadingsSingle(pca, numNeurons=None, var_thld=0.9, loadings_thld=0.2,
     pca_components = DataFrame(
         pca.components_[:,:num_component],
         columns=[f'PC_{i}' for i in range(1, num_component+1)],
-        index=[f'x{i}' for i in range(1, numNeurons+1)]
+        index=[f'x{i}' for i in range(numNeurons)]
     )
 
     pca_loadings = (pca_components * np.sqrt(pca.explained_variance_[:num_component])).abs()
