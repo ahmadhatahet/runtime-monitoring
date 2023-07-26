@@ -27,8 +27,8 @@ torch.set_float32_matmul_precision('high')
 
 from utilities.utils import *
 from utilities.pathManager import fetchPaths
-from utilities.scaleFunctions import *
-from utilities.pcaFunctions import *
+from utilities.scaleFunctions import fitStandardScalerSingle
+from utilities.pcaFunctions import fitPCASingle, applyPCASingle, neuronsLoadingsSingle
 
 
 # disable warnings
@@ -41,6 +41,7 @@ from models.mnist_model import MNIST_Model
 from models.fashionmnist_model import FashionMNIST_CNN
 from models.gtsrb_model import GTSRB_CNN
 from models.cifar10_dla import Cifar10_DLA
+from models.cifar10_model import Cifar10_CNN
 
 from models.transformers import transformers
 
@@ -48,7 +49,8 @@ models = {
     'mnist': MNIST_Model,
     'fashionmnist': FashionMNIST_CNN,
     'gtsrb': GTSRB_CNN,
-    'cifar10': Cifar10_DLA
+    # 'cifar10': Cifar10_DLA,
+    'cifar10': Cifar10_CNN
 }
 
 model_ = models[DATASET.lower()]
@@ -153,7 +155,9 @@ model_stats = pd.DataFrame({
     'test_losses':pd.Series(dtype=object),
     'train_accs':pd.Series(dtype=object),
     'test_accs':pd.Series(dtype=object),
+    'train_loss':pd.Series(dtype=np.float16),
     'test_loss':pd.Series(dtype=np.float16),
+    'train_acc':pd.Series(dtype=np.float16),
     'test_acc':pd.Series(dtype=np.float16)
 })
 
@@ -173,11 +177,17 @@ for lhl in config['lhl_neurons']:
     if skip_train: continue
 
     # train
-    train_losses, test_losses, train_accs, test_accs, test_loss, test_acc, confusion_matrix_test, best_model_name = \
+    (train_losses, train_accs,
+    test_losses,test_accs,
+    train_loss,train_acc
+    ,test_loss,test_acc,
+    confusion_matrix_train,
+    confusion_matrix_test,
+    best_model_name) = \
     start_training_testing(model_name, model, loss_function, optimizer, scheduler)
 
     # save stats
-    model_stats.loc[model_stats.shape[0]+1] = [lhl, optim_name, scheduler_name, len(train_losses), np.argmax(test_accs), train_losses, test_losses, train_accs, test_accs, test_loss, test_acc]
+    model_stats.loc[model_stats.shape[0]+1] = [lhl, optim_name, scheduler_name, len(train_losses), np.argmax(test_accs), train_losses, test_losses, train_accs, test_accs, train_loss, test_loss, train_acc, test_acc]
 
     # load best model
     load_checkpoint(model, best_model_name)
@@ -192,7 +202,8 @@ for lhl in config['lhl_neurons']:
 
 
 # save model stats csv
-model_stats.to_csv(path_stats / f'{DATASET}_model_stats.csv', index=False)
+if model_stats.shape[0] != 0:
+    model_stats.to_csv(path_stats / f'{DATASET}_model_stats.csv', index=False)
 
 # Export PCA
 
@@ -206,7 +217,6 @@ for lhl in config['lhl_neurons']:
     paths_ = fetchPaths(base, DATASET, postfix)
     p_lhl = paths_['lhl']
     p_lhl_raw = paths_['lhl_raw']
-    p_lhl_pca = paths_['lhl_pca']
     p_lhl_scaler_pca = paths_['lhl_scaler_pca']
 
     # load data
@@ -216,23 +226,20 @@ for lhl in config['lhl_neurons']:
 
     # fit scaler and pca
     scaler_ = fitStandardScalerSingle(true, lhl)
-    pca_ = fitPCASingle(true, scaler=None, numNeurons=lhl)
-    scaler_pca_ = fitPCASingle(true, scaler=scaler_, numNeurons=lhl)
+    scaler_pca_ = fitPCASingle(true, scaler_, lhl)
 
     # save objects
     save_pickle(p_lhl / 'scaler.pkl', scaler_)
-    save_pickle(p_lhl / 'pca.pkl', pca_)
     save_pickle(p_lhl / 'scaler_pca.pkl', scaler_pca_)
 
     # transform and save data
     ## train
-    applyPCASingle(pca_, train, scaler=None, numNeurons=lhl).to_csv(p_lhl_pca / f'{model_name}_pca_train.csv', index=False)
-    applyPCASingle(scaler_pca_, train, scaler=scaler_, numNeurons=lhl).to_csv(p_lhl_scaler_pca / f'{model_name}_scaler_pca_train.csv', index=False)
+    applyPCASingle(train, scaler_, scaler_pca_, lhl).to_csv(p_lhl_scaler_pca / f'{model_name}_scaler_pca_train.csv', index=False)
 
     ## test
-    applyPCASingle(pca_, test, scaler=None, numNeurons=lhl).to_csv(p_lhl_pca / f'{model_name}_pca_test.csv', index=False)
-    applyPCASingle(scaler_pca_, test, scaler=scaler_, numNeurons=lhl).to_csv(p_lhl_scaler_pca / f'{model_name}_scaler_pca_test.csv', index=False)
+    applyPCASingle(test, scaler_, scaler_pca_, lhl).to_csv(p_lhl_scaler_pca / f'{model_name}_scaler_pca_test.csv', index=False)
 
     # save selected neurons
-    save_json(p_lhl / 'neurons_pca.json', neuronsLoadingsSingle(pca_, numNeurons=None, var_thld=0.9, loadings_thld=0.5))
-    save_json(p_lhl / 'neurons_scaler_pca.json', neuronsLoadingsSingle(scaler_pca_, numNeurons=None, var_thld=0.9, loadings_thld=0.5))
+    gte_mean, top_third = neuronsLoadingsSingle(scaler_pca_, lhl)
+    save_json(p_lhl / 'neurons_scaler_pca_gte_mean.json', gte_mean)
+    save_json(p_lhl / 'neurons_scaler_pca_top_third.json', top_third)
