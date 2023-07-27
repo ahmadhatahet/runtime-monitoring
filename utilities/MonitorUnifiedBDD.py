@@ -37,11 +37,11 @@ class MonitorBDD:
         self.stats = pd.DataFrame({
             'thld': pd.Series(dtype='str'),
             'eta': pd.Series(dtype=np.int8),
-            'build_time': pd.Series(dtype=np.float16),
+            'build_time_min': pd.Series(dtype=np.float16),
             'size_mb': pd.Series(dtype=np.float16),
-            'reorder_time': pd.Series(dtype=np.float16),
+            'reorder_time_min': pd.Series(dtype=np.float16),
             'num_patterns': pd.Series(dtype=np.int32),
-            'num_unique_patterns': pd.Series(dtype=np.int32),
+            'num_unique_patterns_%': pd.Series(dtype=np.int32),
             'num_reorder': pd.Series(dtype=np.int8),
             'num_neurons': pd.Series(dtype=np.int16),
             'start_time': pd.Series(dtype='str'),
@@ -155,17 +155,17 @@ class MonitorBDD:
         patterns = np.unique(patterns, axis=0)
 
         self.stats.loc[row, 'num_patterns'] = df.shape[0]
-        self.stats.loc[row, 'num_unique_patterns'] = patterns.shape[0]
+        self.stats.loc[row, 'num_unique_patterns_%'] = round(patterns.shape[0] / df.shape[0], 3) * 100
 
         for i in range(patterns.shape[0]):
             self.__add_one_pattern(patterns[i])
 
-        build_time = round((time.perf_counter() - start) / 60, 3)
+        build_time = lambda start: round((time.perf_counter() - start) / 60, 3) * 100
         bdd_stats = self.bdd.statistics()
         self.stats.loc[row, 'eta'] = 0
-        self.stats.loc[row, 'build_time'] = build_time
+        self.stats.loc[row, 'build_time_min'] = build_time(start)
         self.stats.loc[row, 'size_mb'] = round( bdd_stats['mem'] * 1e-6, 3) # to mb
-        self.stats.loc[row, 'reorder_time'] = bdd_stats['reordering_time'] / 60 # in minutes
+        self.stats.loc[row, 'reorder_time_min'] = round(bdd_stats['reordering_time'] / 60) * 100 # in minutes
         self.stats.loc[row, 'num_reorder'] = bdd_stats['n_reorderings']
         self.stats.loc[row, 'num_neurons'] = len(self.neurons) if self.neurons.shape[0] != 0 else self.num_neurons
         self.stats.loc[row, 'end_time'] = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
@@ -185,20 +185,25 @@ class MonitorBDD:
                 start = time.perf_counter()
 
                 # generate flipped patterns for an eta
+                num_flipped_pattern = 0
+                num_added_pattern = 0
                 for flipped_patterns in self.flip_pattern(patterns, et):
+                    num_flipped_pattern += flipped_patterns.shape[0]
                     for pattern in flipped_patterns:
                         if not self.check_one_pattern(pattern):
+                            num_added_pattern += 1
                             self.__add_one_pattern(pattern)
 
-                build_time = round((time.perf_counter() - start) / 60, 3)
                 bdd_stats = self.bdd.statistics()
                 self.stats.loc[row, 'eta'] = et
-                self.stats.loc[row, 'build_time'] = build_time
+                self.stats.loc[row, 'build_time_min'] = build_time(start)
                 self.stats.loc[row, 'size_mb'] = round( self.bdd.statistics()['mem'] * 1e-6, 3)
-                self.stats.loc[row, 'reorder_time'] = bdd_stats['reordering_time']
+                self.stats.loc[row, 'reorder_time_min'] = round(bdd_stats['reordering_time'] / 60) * 100
                 self.stats.loc[row, 'num_reorder'] = bdd_stats['n_reorderings']
                 self.stats.loc[row, 'num_neurons'] = len(self.neurons) if self.neurons.shape[0] != 0 else self.num_neurons
                 self.stats.loc[row, 'end_time'] = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
+                self.stats.loc[row, 'num_patterns'] = num_flipped_pattern
+                self.stats.loc[row, 'num_unique_patterns_%'] = round(num_added_pattern / num_flipped_pattern, 3)
 
                 # add column for scoring
                 for eval_df in eval_dfs:
@@ -357,7 +362,7 @@ class MonitorBDD:
 
 
 def build_bdd_multi_etas(args):
-    df_train, df_test, df_true, neurons, thld_name, thld, eta, memory, save_path = args
+    df_train, df_test, df_true, df_logits, neurons, thld_name, thld, eta, memory, save_path = args
 
     from dd.autoref import BDD
 
@@ -366,7 +371,7 @@ def build_bdd_multi_etas(args):
     print(f'Threshold: {thld_name}, eta: {eta}')
 
     # build
-    patterns.add_dataframe( df_true, eta, eval_dfs=[df_train, df_test] )
+    patterns.add_dataframe( df_true, eta, eval_dfs=[df_train, df_test, df_logits] )
 
     # collect scores
     df_bdd_info = patterns.stats.copy()
@@ -374,11 +379,13 @@ def build_bdd_multi_etas(args):
 
     df_train_scores = patterns.score_dataframe_multi_eta(df_train, eta)
     df_test_scores = patterns.score_dataframe_multi_eta(df_test, eta)
+    df_logit_scores = patterns.score_dataframe_multi_eta(df_logits, eta)
     df_train_scores['stage'] = 'train'
     df_test_scores['stage'] = 'test'
+    df_logit_scores['stage'] = 'evaluation'
 
     # combine scores
-    df_bdd_scores = pd.concat([df_train_scores, df_test_scores]).reset_index(drop=True)
+    df_bdd_scores = pd.concat([df_train_scores, df_test_scores, df_logit_scores]).reset_index(drop=True)
     df_bdd_scores['thld'] = thld_name
 
 
@@ -421,9 +428,13 @@ def build_bdd_multi_etas(args):
         df_test[df_test.columns[idx_col_keep]] = patterns.applying_thlds(df_test)
         df_test.drop(idx_col_delete, axis=1, inplace=True)
 
+        df_logits[df_logits.columns[idx_col_keep]] = patterns.applying_thlds(df_logits)
+        df_logits.drop(idx_col_delete, axis=1, inplace=True)
+
         # save processed data and the BDD result
         df_train.to_csv(save_path / f'data-{thld_name}-{eta}-{temp_name}_bdd_train.csv', index=False)
         df_test.to_csv(save_path / f'data-{thld_name}-{eta}-{temp_name}_bdd_test.csv', index=False)
+        df_logits.to_csv(save_path / f'data-{thld_name}-{eta}-{temp_name}_bdd_evaluation.csv', index=False)
 
     # delete variables
     del BDD, patterns
