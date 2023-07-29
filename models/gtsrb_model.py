@@ -31,26 +31,37 @@ class GTSRB_CNN(nn.Module):
         self.flatten = nn.Flatten()
         # scaling data
         self.scaleInputs = nn.BatchNorm2d(channels)
-        self.dropout_l = nn.Dropout(self.dropout_p)
-        self.pool = nn.MaxPool2d(2, 2)
 
 
-        self.cn1 = nn.Conv2d(channels, 256, 5, bias=bias)
-        self.bn1 = nn.BatchNorm2d(256)
+        self.conv = nn.Sequential(
+            nn.Conv2d(channels, 256, 5, bias=bias),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
 
-        self.cn2 = nn.Conv2d(256, 256, 3, bias=bias)
-        self.bn2 = nn.BatchNorm2d(256)
+            nn.Conv2d(256, 256, 3, bias=bias),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
 
-        self.cn3 = nn.Conv2d(256, 64, 2, bias=bias)
-        self.bn3 = nn.BatchNorm2d(64)
+            nn.Conv2d(256, 64, 2, bias=bias),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
 
-        self.cn4 = nn.Conv2d(64, 64, 2, bias=bias)
-        self.bn4 = nn.BatchNorm2d(64)
+            nn.Conv2d(64, 64, 2, bias=bias),
+            nn.BatchNorm2d(64),
+            nn.ReLU()
+        )
 
         in_features_fc, last_conv_out_feature = self.conv_params()
 
-        self.fc5 = nn.Linear(last_conv_out_feature * in_features_fc * in_features_fc, last_hidden_neurons, bias=bias)
-        self.bn5 = nn.BatchNorm1d(last_hidden_neurons)
+        self.fc = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(self.dropout_p),
+            nn.Linear(last_conv_out_feature * in_features_fc * in_features_fc, last_hidden_neurons, bias=bias)
+        )
+
+        self.bn = nn.BatchNorm1d(last_hidden_neurons)
 
         self.output = nn.Linear(last_hidden_neurons, outneurons, bias=bias)
 
@@ -62,7 +73,7 @@ class GTSRB_CNN(nn.Module):
     def forward(self, x):
 
         x = self._train(x)
-        if self.batchnorm: x = self.bn5(x)
+        if self.batchnorm: x = self.bn(x)
         x = self.relu(x)
         x = self.output(x)
 
@@ -72,16 +83,8 @@ class GTSRB_CNN(nn.Module):
     def _train(self, x):
 
         if self.first_layer_norm: x = self.scaleInputs(x)
-
-        x = self.pool(self.relu(self.bn1(self.cn1(x))))
-        x = self.pool(self.relu(self.bn2(self.cn2(x))))
-
-        x = self.relu(self.bn3(self.cn3(x)))
-        x = self.relu(self.bn4(self.cn4(x)))
-
-        x = self.flatten(x)
-        x = self.dropout_l(x)
-        x = self.fc5(x)
+        x = self.conv(x)
+        x = self.fc(x)
 
         return x
 
@@ -89,7 +92,7 @@ class GTSRB_CNN(nn.Module):
 
         x = self._train(x)
         out = x.clone().detach()
-        if self.batchnorm: x = self.bn5(x)
+        if self.batchnorm: x = self.bn(x)
         x = self.relu(x)
         x = self.output(x)
 
