@@ -6,7 +6,6 @@ from pathlib import Path
 from utilities.utils import *
 from utilities.pathManager import fetchPaths
 from utilities.pcaFunctions import applyPCASingle
-from utilities.scaleFunctions import applyStandardScalerSingle
 from utilities.MonitorUnifiedBDD import build_bdd_multi_etas
 
 from models.mnist_model import MNIST_Model
@@ -62,20 +61,26 @@ def run_parallel(args):
     transformer = transformers[DATASET.lower()]
 
     # device
-    CUDA = 0
-    GPU_NAME = f'cuda:{CUDA}'
-    device = get_device(GPU_NAME)
-    torch.cuda.get_device_name(device)
+    # CUDA = 0
+    # GPU_NAME = f'cuda:{CUDA}'
+    # device = get_device(GPU_NAME)
+    # torch.cuda.get_device_name(device)
 
-    # load test data
+    # load stratified sample test data
+    num_samples = 1000
     test_data = get_dataset(TARGET_DATASET, path_target_data, train=False)
-    mean_, std_ = transformer['test'].transforms[1].mean, transformer['test'].transforms[1].std
-    x_target = torch.stack([test_data[i][0] for i in test_sample]) - mean_ / std_
+
+    _, test_sample = train_test_split(
+        torch.range(0, len(test_data.targets)-1, dtype=torch.int32),
+        test_size=num_samples, shuffle=True, stratify=test_data.targets
+    )
+    # normalize data
+    x_target = transformer['test'].transforms[1](torch.stack([test_data[i][0] for i in test_sample]))
 
 
     # torch 2.0 compile and parallel data training
     model_setup['last_hidden_neurons'] = N
-    model = model_(**model_setup).to(device)
+    model = model_(**model_setup)
     model = torch.compile(model)
 
     # load model weights
@@ -85,8 +90,8 @@ def run_parallel(args):
     model.eval()
 
     # get last hidden layer logits for target data
-    logits_target, _ = model.output_last_layer(x_target.to(device))
-    logits_target = logits_target.cpu().numpy()
+    logits_target, _ = model.output_last_layer(x_target)
+    logits_target = logits_target.numpy()
     logits_target = pd.DataFrame(logits_target, columns=[f'x{i}' for i in range(logits_target.shape[1])])
 
     # project data to pca
@@ -140,66 +145,75 @@ def run_parallel(args):
     thld_names.append("relu")
 
     # add mean
-    thlds.append(np.mean(df_true.drop("y", axis=1).shape[1], axis=0))
+    thlds.append(np.mean(df_true.drop("y", axis=1), axis=0))
     thld_names.append("mean")
 
 
     # loop over two types of selected neurons if LOAD_NEURONS
     for neuron_name, selected_neurons in neurons_dict.items():
+
         # replace neurons with type of subset
         if LOAD_NEURONS:
             POSTFIX2_TEMP = POSTFIX2.replace('neurons', neuron_name)
         else:
             POSTFIX2_TEMP = POSTFIX2
 
+        final_csv_filename = lambda type: f"all-thlds-{type}-{eta}-{POSTFIX2_TEMP}.csv"
+
+        if (path_bdd / final_csv_filename('scores')).is_file():
+            print(f"[ FOUNDED: {DATASET} {POSTFIX2_TEMP}]")
+            continue
+            # df_bdd_info = pd.read_csv(path_bdd / final_csv_filename('info'))
+            # df_bdd_scores = pd.read_csv(path_bdd / final_csv_filename('scores'))
+
         # args combinations
         combinations = [(thld_name, thld, eta) for (thld_name, thld) in zip(thld_names, thlds)]
 
-        # drop a combination if the scores already have been collected
-        ind_to_pop = []
-        for i, (thld_name, *_) in enumerate(combinations):
-            if (
-                (path_bdd / f"all-thlds-info-{thld_name}-{eta}-{POSTFIX2_TEMP}.csv").is_file()
-                and (path_bdd / f"all-thlds-scores-{thld_name}-{eta}-{POSTFIX2_TEMP}.csv").is_file()
-            ):
-                print(f"[ FOUNDED: {POSTFIX2_TEMP} {thld_name} ]")
-                ind_to_pop.append(i)
+        # # drop a combination if the scores already have been collected
+        # ind_to_pop = []
+        # for i, (thld_name, *_) in enumerate(combinations):
+        #     if (
+        #         (path_bdd / final_csv_filename('info')).is_file()
+        #         and (path_bdd / final_csv_filename('scores')).is_file()
+        #     ):
+        #         print(f"[ FOUNDED: {POSTFIX2_TEMP} {thld_name} ]")
+        #         ind_to_pop.append(i)
 
-        for i in ind_to_pop[::-1]: combinations.pop(i)
+        # for i in ind_to_pop[::-1]: combinations.pop(i)
 
-        # print combination
-        for c, *_ in combinations: print(c)
+        # # print combination
+        # for c, *_ in combinations: print(c)
 
-        # start the pool
-        if len(combinations) > 0:
+        # # start the pool
+        # if len(combinations) > 0:
 
-            # run parallel build_bdd_multi_etas
-            print("Numper of available CPUs:", min(len(combinations), mp.cpu_count()))
-            print("Numper combinations:", len(combinations))
+        # run parallel build_bdd_multi_etas
+        print("Numper of available CPUs:", min(len(combinations), mp.cpu_count()))
+        print("Numper combinations:", len(combinations))
 
-            pool = mp.Pool(min(len(combinations), mp.cpu_count()))
+        pool = mp.Pool(min(len(combinations), mp.cpu_count()))
 
-            results = pool.map(
-                build_bdd_multi_etas,
-                [(df_train.copy(), df_test.copy(), df_true.copy(), df_logits_copy.copy(),
-                selected_neurons, thld_name, thld, eta, memory, path_bdd)
-                for thld_name, thld, eta in combinations])
+        results = pool.map(
+            build_bdd_multi_etas,
+            [(df_train.copy(), df_test.copy(), df_true.copy(), df_logits_copy.copy(),
+            selected_neurons, thld_name, thld, eta, memory, path_bdd)
+            for thld_name, thld, eta in combinations])
 
-            pool.close()
+        pool.close()
 
-            # saving results
-            print("[" + "=" * 100 + "]")
-            print("> Done All BDDs...")
+        # saving results
+        print("[" + "=" * 100 + "]")
+        print("> Done All BDDs...")
 
-            df_bdd_info = pd.concat([r[0] for r in results]).reset_index(drop=True)
-            df_bdd_info.to_csv(path_bdd / f"all-thlds-info-{eta}-{POSTFIX2_TEMP}.csv", index=False)
+        df_bdd_info = pd.concat([r[0] for r in results]).reset_index(drop=True)
+        df_bdd_info.to_csv(path_bdd / f"all-thlds-info-{eta}-{POSTFIX2_TEMP}.csv", index=False)
 
-            df_bdd_scores = pd.concat([r[1] for r in results]).reset_index(drop=True)
-            df_bdd_scores.to_csv(path_bdd / f"all-thlds-scores-{eta}-{POSTFIX2_TEMP}.csv", index=False)
+        df_bdd_scores = pd.concat([r[1] for r in results]).reset_index(drop=True)
+        df_bdd_scores.to_csv(path_bdd / f"all-thlds-scores-{eta}-{POSTFIX2_TEMP}.csv", index=False)
 
-            # replace neurons with type of selected neurons
-            for p in path_bdd.glob('*neurons*.csv'):
-                p.rename(p.parent / p.name.replace('neurons', neuron_name))
+        # replace neurons with type of selected neurons
+        for p in path_bdd.glob('*neurons*.csv'):
+            p.rename(p.parent / p.name.replace('neurons', neuron_name))
 
     print("[" + "=" * 100 + "]")
     print("> Finished!")
