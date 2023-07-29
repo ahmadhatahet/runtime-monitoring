@@ -203,7 +203,7 @@ class MonitorBDD:
                 self.stats.loc[row, 'num_neurons'] = len(self.neurons) if self.neurons.shape[0] != 0 else self.num_neurons
                 self.stats.loc[row, 'end_time'] = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
                 self.stats.loc[row, 'num_patterns'] = num_flipped_pattern
-                self.stats.loc[row, 'num_unique_patterns_%'] = round(num_added_pattern / num_flipped_pattern, 3)
+                self.stats.loc[row, 'num_unique_patterns_%'] = round(num_added_pattern / max(num_flipped_pattern, 1), 3)
 
                 # add column for scoring
                 for eval_df in eval_dfs:
