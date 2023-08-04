@@ -26,7 +26,7 @@ models = {
 
 def run_parallel(args):
 
-    DATASET, TARGET_DATASET, POSTFIX, N, FALVOR, LOAD_NEURONS, eta, memory = args
+    DATASET, TARGET_DATASET, POSTFIX, N, FLAVOR, LOAD_NEURONS, eta, memory = args
 
     POSTFIX = f"{POSTFIX}-{N}"
 
@@ -37,86 +37,33 @@ def run_parallel(args):
     base = Path().cwd()
     paths = fetchPaths(base, DATASET, POSTFIX)
     path_lhl = paths['lhl']
-    path_lhl_data = paths['lhl_' + FALVOR]
-    path_bdd = paths['bdd'] / FALVOR
+    path_lhl_data = paths['lhl_' + FLAVOR]
+    path_bdd = paths['bdd'] / FLAVOR
     path_bdd.mkdir(exist_ok=True)
     path_target_data = paths['data'].parent / TARGET_DATASET
 
-    configs = load_json(paths['configuration'].parent / 'thresholds.json')
-    thresholds = configs['thlds']
+    # load bdd thresholds
+    configs_thld = load_json(paths['configuration'].parent / 'thresholds.json')
+    thresholds = configs_thld['thlds']
 
-    # load config file
-    configs = load_json(paths['configuration'])
-    config = configs['configuration']
+    # # load pca and scaler objects
+    # if FLAVOR == 'scaler_pca':
+    #     # load sacler object
+    #     sacler_ = load_pickle(path_lhl / f'scaler.pkl')
+    #     # load pca object
+    #     pca_ = load_pickle(path_lhl / f'scaler_pca.pkl')
 
-    # model config
-    model_setup = configs['model_setup']
-    model_config = configs['model_config']
-
-    # saved model
-    path_model = next(paths['saved_models'].glob('*.pth.tar'))
-
-    # load trained model
-    model_ = models[DATASET.lower()]
-    transformer = transformers[DATASET.lower()]
-
-    # device
-    # CUDA = 0
-    # GPU_NAME = f'cuda:{CUDA}'
-    # device = get_device(GPU_NAME)
-    # torch.cuda.get_device_name(device)
-
-    # load stratified sample test data
-    num_samples = 1000
-    test_data = get_dataset(TARGET_DATASET, path_target_data, train=False)
-
-    _, test_sample = train_test_split(
-        torch.range(0, len(test_data.targets)-1, dtype=torch.int32),
-        test_size=num_samples, shuffle=True, stratify=test_data.targets
-    )
-    # normalize data
-    x_target = transformer['test'].transforms[1](torch.stack([test_data[i][0] for i in test_sample]))
-
-
-    # torch 2.0 compile and parallel data training
-    model_setup['last_hidden_neurons'] = N
-    model = model_(**model_setup)
-    model = torch.compile(model)
-
-    # load model weights
-    model.load_state_dict(torch.load(path_model)['model'])
-
-    # eavluation mode
-    model.eval()
-
-    # get last hidden layer logits for target data
-    logits_target, _ = model.output_last_layer(x_target)
-    logits_target = logits_target.numpy()
-    logits_target = pd.DataFrame(logits_target, columns=[f'x{i}' for i in range(logits_target.shape[1])])
-
-    # project data to pca
-    if FALVOR == 'scaler_pca':
-        # load sacler object
-        sacler_ = load_pickle(path_lhl / f'scaler.pkl')
-        # load pca object
-        pca_ = load_pickle(path_lhl / f'scaler_pca.pkl')
-        # transform data
-        logits_target = applyPCASingle(logits_target, sacler_, pca_, N)
-
-    # target data
-    df_logits_copy = logits_target.copy()
-    df_logits_copy['y'] = 1
-    df_logits_copy['true'] = 1
-
+    # load evaluation data or create one
+    df_logits_copy = pd.read_csv(path_lhl_data / f"{FILENAME_POSTFIX}_{FLAVOR}_evaluation.csv")
 
     # output file name
-    POSTFIX2 = FALVOR.lower()
+    POSTFIX2 = FLAVOR.lower()
     POSTFIX2 += "_neurons" if LOAD_NEURONS else ""
     POSTFIX2 += f"_{FILENAME_POSTFIX}"
 
     # import lasthidden layer data
-    df_train = pd.read_csv(path_lhl_data / f"{FILENAME_POSTFIX}_{FALVOR}_train.csv")
-    df_test = pd.read_csv(path_lhl_data / f"{FILENAME_POSTFIX}_{FALVOR}_test.csv")
+    df_train = pd.read_csv(path_lhl_data / f"{FILENAME_POSTFIX}_{FLAVOR}_train.csv")
+    df_test = pd.read_csv(path_lhl_data / f"{FILENAME_POSTFIX}_{FLAVOR}_test.csv")
 
     # select only true classified instances
     df_true = df_train[df_train["true"] == True].copy()
