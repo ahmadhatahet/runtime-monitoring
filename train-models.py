@@ -1,4 +1,4 @@
-DATASET = 'FashionMNIST'
+DATASET = 'GTSRB'
 SEED = 42
 CUDA = 0
 GPU_NAME = f'cuda:{CUDA}'
@@ -144,22 +144,24 @@ def start_training_testing(model_name, model, loss_function, optimizer, schedule
     # run training testing
     return run_training_testing(**kwargs)
 
-
-model_stats = pd.DataFrame({
-    'lhl':pd.Series(dtype=str),
-    'optim':pd.Series(dtype=str),
-    'scheduler':pd.Series(dtype=str),
-    'epochs':pd.Series(dtype=np.uint8),
-    'best_epoch':pd.Series(dtype=np.uint8),
-    'train_losses':pd.Series(dtype=object),
-    'test_losses':pd.Series(dtype=object),
-    'train_accs':pd.Series(dtype=object),
-    'test_accs':pd.Series(dtype=object),
-    'train_loss':pd.Series(dtype=np.float16),
-    'test_loss':pd.Series(dtype=np.float16),
-    'train_acc':pd.Series(dtype=np.float16),
-    'test_acc':pd.Series(dtype=np.float16)
-})
+if (path_stats / f'{DATASET}_model_stats.csv').is_file():
+    model_stats = pd.read_csv(path_stats / f'{DATASET}_model_stats.csv')
+else:
+    model_stats = pd.DataFrame({
+        'lhl':pd.Series(dtype=str),
+        'optim':pd.Series(dtype=str),
+        'scheduler':pd.Series(dtype=str),
+        'epochs':pd.Series(dtype=np.uint8),
+        'best_epoch':pd.Series(dtype=np.uint8),
+        'train_losses':pd.Series(dtype=object),
+        'test_losses':pd.Series(dtype=object),
+        'train_accs':pd.Series(dtype=object),
+        'test_accs':pd.Series(dtype=object),
+        'train_loss':pd.Series(dtype=np.float16),
+        'test_loss':pd.Series(dtype=np.float16),
+        'train_acc':pd.Series(dtype=np.float16),
+        'test_acc':pd.Series(dtype=np.float16)
+    })
 
 # Run Training
 for lhl in config['lhl_neurons']:
@@ -168,13 +170,17 @@ for lhl in config['lhl_neurons']:
     postfix = f"{optim_name}-{model_config['batch_size']}-{lhl}"
     model_name, path_saved_model, path_lhl_raw = create_folders(postfix)
 
-    # create model
-    model, loss_function, optimizer, scheduler = create_model(lhl)
-
     # skip train and only load if exists
     skip_train = len(list(path_saved_model.glob(f'{model_name}*.pth.tar'))) != 0
+    if skip_train:
+        print(f'[ Found: {model_name}]')
+        continue
 
-    if skip_train: continue
+
+    print(f'[ Training: {model_name}]')
+
+    # create model
+    model, loss_function, optimizer, scheduler = create_model(lhl)
 
     # train
     (train_losses, train_accs,
