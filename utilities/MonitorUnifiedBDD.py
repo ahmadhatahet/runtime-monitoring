@@ -167,7 +167,7 @@ class MonitorBDD:
         self.stats.loc[row, 'eta'] = 0
         self.stats.loc[row, 'build_time_min'] = build_time(start)
         self.stats.loc[row, 'size_mb'] = round( bdd_stats['mem'] * 1e-6, 3) # to mb
-        self.stats.loc[row, 'reorder_time_min'] = round(bdd_stats['reordering_time'] / 60) * 100 # in minutes
+        self.stats.loc[row, 'reorder_time_min'] = build_time(bdd_stats['reordering_time']) # in minutes
         self.stats.loc[row, 'num_reorder'] = bdd_stats['n_reorderings']
         self.stats.loc[row, 'num_neurons'] = len(self.neurons) if self.neurons.shape[0] != 0 else self.num_neurons
         self.stats.loc[row, 'end_time'] = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
@@ -200,7 +200,7 @@ class MonitorBDD:
                 self.stats.loc[row, 'eta'] = et
                 self.stats.loc[row, 'build_time_min'] = build_time(start)
                 self.stats.loc[row, 'size_mb'] = round( self.bdd.statistics()['mem'] * 1e-6, 3)
-                self.stats.loc[row, 'reorder_time_min'] = round(bdd_stats['reordering_time'] / 60) * 100
+                self.stats.loc[row, 'reorder_time_min'] = build_time(bdd_stats['reordering_time'])
                 self.stats.loc[row, 'num_reorder'] = bdd_stats['n_reorderings']
                 self.stats.loc[row, 'num_neurons'] = len(self.neurons) if self.neurons.shape[0] != 0 else self.num_neurons
                 self.stats.loc[row, 'end_time'] = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
