@@ -256,7 +256,7 @@ def load_checkpoint(model, model_path):
 
 
 def export_last_hidden_layer(
-    dataloader, model, device, nn_num, map_classes, path, filename, stage, mb=None
+    dataloader, model, device, nn_num, path, filename, stage, mb=None
 ):
 
     # create file to save patterns
@@ -264,9 +264,6 @@ def export_last_hidden_layer(
     logits_file.touch()
 
     model.eval()
-
-    if map_classes is not None:
-        map_classes = {v: k for k, v in map_classes.items()}
 
     with open(logits_file, "w+") as f:
 
@@ -285,11 +282,7 @@ def export_last_hidden_layer(
 
                 for xi, y_pred_i, yi in zip(logits, y_pred, y):
                     # save new tensors into dataset with correct label
-                    if map_classes is not None:
-                        y_pred_i = map_classes[y_pred_i.tolist()]
-                        f.write(csv_row(xi.tolist() + [y_pred_i, yi.tolist()]))
-                    else:
-                        f.write(csv_row(xi.tolist() + [y_pred_i.tolist(), yi.tolist()]))
+                    f.write(csv_row(xi.tolist() + [y_pred_i.tolist(), yi.tolist()]))
 
     # convert text to csv
     logits_file.rename(logits_file.with_suffix(".csv"))
@@ -303,21 +296,6 @@ def export_last_hidden_layer(
     df.drop(["y_pred"], axis=1, inplace=True)
 
     df.to_csv(logits_file, index=False)
-
-
-def skip_classes_fn(x, y, map_classes, skip_classes):
-
-    # Change skipped classes to -1
-    y.apply_(lambda x: x if x not in skip_classes else -1)
-
-    # Filter data and label indecies
-    x = x[y > -1]
-    y = y[y > -1]
-
-    # Remap classes indecies to match output layer order
-    y.apply_(lambda c: map_classes[c])
-
-    return x, y
 
 
 def step_lr_scheduler(lr_scheduler, epoch_test_acc, epoch_test_loss):
@@ -385,8 +363,6 @@ def train_epoch(
     model,
     loss_function,
     optimizer,
-    map_classes,
-    skip_classes,
     device,
     mb,
     config,
@@ -401,10 +377,6 @@ def train_epoch(
 
         optimizer.zero_grad()
         model.train()
-
-        # Filter data and label indecies
-        if map_classes is not None and skip_classes is not None:
-            x, y = skip_classes_fn(x, y, map_classes, skip_classes)
 
         # Forward pass
         y_pred = model(x.to(device))
@@ -429,7 +401,7 @@ def train_epoch(
     return np.mean(epoch_loss), float(epoch_correct / epoch_total)
 
 
-def test_epoch(dataloader, model, loss_function, map_classes, skip_classes, device, mb):
+def test_epoch(dataloader, model, loss_function, device, mb):
 
     epoch_loss = []
     epoch_correct, epoch_total = 0, 0
@@ -443,9 +415,6 @@ def test_epoch(dataloader, model, loss_function, map_classes, skip_classes, devi
 
             mb.child.comment = "Testing"
 
-            # Filter data and label indecies
-            if map_classes is not None and skip_classes is not None:
-                x, y = skip_classes_fn(x, y, map_classes, skip_classes)
             # make a prediction on validation set
             y_pred = model(x.to(device))
             # For calculating the accuracy, save the number of correctly
@@ -473,8 +442,6 @@ def run_training_testing(
     loss_function,
     optimizer,
     lr_scheduler,
-    map_classes,
-    skip_classes,
     device,
     model_path,
     trainloader,
@@ -517,14 +484,12 @@ def run_training_testing(
             model,
             loss_function,
             optimizer,
-            map_classes,
-            skip_classes,
             device,
             mb,
             config,
         )
         epoch_test_loss, epoch_test_acc, _ = test_epoch(
-            testloader, model, loss_function, map_classes, skip_classes, device, mb
+            testloader, model, loss_function, device, mb
         )
 
         # Save loss and acc for plotting
@@ -574,11 +539,11 @@ def run_training_testing(
         load_checkpoint(model, model_path)
 
         train_loss, train_acc, confusion_matrix_train = test_epoch(
-            trainloader, model, loss_function, map_classes, skip_classes, device, mb
+            trainloader, model, loss_function, device, mb
         )
 
         test_loss, test_acc, confusion_matrix_test = test_epoch(
-            testloader, model, loss_function, map_classes, skip_classes, device, mb
+            testloader, model, loss_function, device, mb
         )
 
     if model_path is not None:
