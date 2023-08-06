@@ -94,10 +94,12 @@ class MonitorBDD:
         if self.thld_3 is not None:
             df_thld += (df >=  self.thld_3).astype('int8')
 
+        df_thld = df_thld.to_numpy()
+
         if self.num_bits == 2:
             df_thld = np.apply_along_axis(self.__multi_thlds, 1, df_thld)
 
-        return df_thld.to_numpy()
+        return df_thld
 
 
     def check_pattern_length(self, row):
