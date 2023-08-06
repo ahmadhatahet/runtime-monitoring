@@ -5,10 +5,8 @@ from pandas import read_csv
 import pickle
 import json
 
-from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader
-from torch.utils.data import random_split
 import torchvision.transforms as T
 from torchvision import datasets
 
@@ -40,6 +38,16 @@ def load_json(filename):
 def formate_datetime(date_time):
     return dt.strftime(date_time, r"%H:%M:%S")
 
+
+def get_models(base, Dataset):
+    """return available models in a ordered list
+    by number of last hidden layer neurons"""
+    model_names = []
+    for i in (base / 'experiments' / Dataset / 'saved-models').iterdir():
+        if i.name[:len(Dataset)] == Dataset:
+            model_names.append(i.name.replace(Dataset + '_', ''))
+
+    return model_names.sort(key=lambda x: int(x.split('-')[-1]))
 
 def get_labels(d_name):
 
