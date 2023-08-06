@@ -39,6 +39,10 @@ def formate_datetime(date_time):
     return dt.strftime(date_time, r"%H:%M:%S")
 
 
+def csv_row(string_list):
+    return ",".join(map(str, string_list)) + "\n"
+
+
 def get_models(base, Dataset):
     """return available models in a ordered list
     by number of last hidden layer neurons"""
