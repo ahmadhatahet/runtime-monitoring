@@ -37,11 +37,6 @@ def load_json(filename):
         return json.load(f)
 
 
-def write_bdd_stats(msg, path):
-    with path.open("a") as f:
-        f.write(f'{",".join([*map(str, msg)])}\n')
-
-
 def formate_datetime(date_time):
     return dt.strftime(date_time, r"%H:%M:%S")
 
@@ -169,47 +164,6 @@ def get_dataset(
         return datasets.CIFAR10(
             root=root, train=train, download=download, transform=transform
         )
-
-
-def split_data(data, split_size):
-    """
-    Split data into two is split_size is a list using PyTorch random_split
-    Other split is to return the indecies of a small balanced subset using sklearn
-    """
-    if not isinstance(split_size, list):
-        _, indexs, _, _ = train_test_split(
-            list(range(len(data))), data, test_size=split_size, stratify=data)
-        return indexs
-
-    return random_split(data, split_size, generator=torch.Generator())
-
-
-def transformer_augmentation_fn():
-    return T.Compose(
-        [
-            T.ToPILImage(),
-            T.RandomApply(
-                [
-                    T.RandomAffine((10, 45)),
-                    T.RandomAffine(0, translate=(0.1, 0.25)),
-                    T.RandomAffine(0, scale=(1.1, 1.25)),
-                ],
-                p=0.3,
-            ),
-            T.ToTensor(),
-        ]
-    )
-
-
-transformer_augmentation = transformer_augmentation_fn()
-
-
-def collat_fn_augmentation(batch):
-
-    data = torch.stack([transformer_augmentation(item[0]) for item in batch])
-    label = torch.tensor([item[1] for item in batch])
-
-    return [data, label]
 
 
 def get_device(name=None):
