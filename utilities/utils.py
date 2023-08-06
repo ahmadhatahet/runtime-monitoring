@@ -47,7 +47,8 @@ def get_models(base, Dataset):
         if i.name[:len(Dataset)] == Dataset:
             model_names.append(i.name.replace(Dataset + '_', ''))
 
-    return model_names.sort(key=lambda x: int(x.split('-')[-1]))
+    model_names.sort(key=lambda x: int(x.split('-')[-1]))
+    return model_names
 
 def get_labels(d_name):
 
