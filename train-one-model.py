@@ -1,13 +1,6 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# **Model Source:**<br />
-# https://github.com/kuangliu/pytorch-cifar/blob/49b7aa97b0c12fe0d4054e670403a16b6b834ddd/models/dla_simple.py
-
-# # Setup Variables
+# Setup Variables
 
 # MNIST, FashionMNIST, GTSRB, Cifar10
-DATASET = 'MNIST'
 SEED = 42
 CUDA = 0
 GPU_NAME = f'cuda:{CUDA}'
@@ -33,6 +26,7 @@ import torch.backends.cudnn as cudnn
 cudnn.benchmark = True
 torch.set_float32_matmul_precision('high')
 
+from argparse import ArgumentParser
 from utilities.utils import *
 from utilities.pathManager import fetchPaths
 from utilities.scaleFunctions import *
@@ -43,6 +37,11 @@ from utilities.pcaFunctions import *
 import warnings
 warnings.filterwarnings('ignore')
 
+# argparser
+parser = ArgumentParser()
+parser.add_argument('-d', '--dataset', required=True, type=str)
+args = parser.parse_args()
+DATASET = args.dataset
 
 # # Paths
 
