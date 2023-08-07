@@ -3,15 +3,12 @@ import torch.nn as nn
 
 class MNIST_Model(nn.Module):
     def __init__(
-        self, img_dim=28, outneurons=10, last_hidden_neurons=30, first_layer_norm=False,
-        weight_init='kaiming_uniform', bias=False, dropout=0.0, batchnorm=True
-    ):
+        self, img_dim=28, outneurons=10, last_hidden_neurons=30,
+        weight_init='kaiming_uniform', bias=False, dropout=0.0):
 
         super(MNIST_Model, self).__init__()
 
         self.channels = 1
-        self.first_layer_norm = first_layer_norm
-        self.batchnorm = batchnorm
         self.img_dim = img_dim
         self.in_features = img_dim * img_dim
         self.num_classes = outneurons
