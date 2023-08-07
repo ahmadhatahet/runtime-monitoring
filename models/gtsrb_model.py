@@ -3,9 +3,8 @@ import torch.nn as nn
 
 class GTSRB_CNN(nn.Module):
     def __init__(
-        self, channels=3, img_dim=30, outneurons=43, last_hidden_neurons=80, first_layer_norm=False,
-        weight_init='kaiming_uniform', bias=False, dropout=0.0, batchnorm=True
-    ):
+        self, channels=3, img_dim=30, outneurons=43, last_hidden_neurons=80,
+        weight_init='kaiming_uniform', bias=False, dropout=0.0):
 
         super(GTSRB_CNN, self).__init__()
 
@@ -15,8 +14,6 @@ class GTSRB_CNN(nn.Module):
         self.num_classes = outneurons
         self.last_hidden_neurons = last_hidden_neurons
         self.dropout_p = dropout
-        self.batchnorm = batchnorm
-        self.first_layer_norm = first_layer_norm
 
         # uniform(-1/sqrt(in_features), 1/sqrt(in_features))
         weights = {
@@ -73,7 +70,7 @@ class GTSRB_CNN(nn.Module):
     def forward(self, x):
 
         x = self._train(x)
-        if self.batchnorm: x = self.bn(x)
+        x = self.bn(x)
         x = self.relu(x)
         x = self.output(x)
 
@@ -82,7 +79,6 @@ class GTSRB_CNN(nn.Module):
 
     def _train(self, x):
 
-        if self.first_layer_norm: x = self.scaleInputs(x)
         x = self.conv(x)
         x = self.fc(x)
 
@@ -92,7 +88,7 @@ class GTSRB_CNN(nn.Module):
 
         x = self._train(x)
         out = x.clone().detach()
-        if self.batchnorm: x = self.bn(x)
+        x = self.bn(x)
         x = self.relu(x)
         x = self.output(x)
 
