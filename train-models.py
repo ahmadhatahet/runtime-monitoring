@@ -1,4 +1,3 @@
-DATASET = 'GTSRB'
 SEED = 42
 CUDA = 0
 GPU_NAME = f'cuda:{CUDA}'
@@ -25,22 +24,28 @@ import torch.backends.cudnn as cudnn
 cudnn.benchmark = True
 torch.set_float32_matmul_precision('high')
 
+from argparse import ArgumentParser
 from utilities.utils import *
 from utilities.pathManager import fetchPaths
 from utilities.scaleFunctions import fitStandardScalerSingle
 from utilities.pcaFunctions import fitPCASingle, applyPCASingle, neuronsLoadingsSingle
 
 
+# argparser
+parser = ArgumentParser()
+parser.add_argument('-d', '--dataset', required=True, type=str)
+args = parser.parse_args()
+DATASET = args.dataset
+
 # disable warnings
 import warnings
 warnings.filterwarnings('ignore')
-
 
 # Load model and settings
 from models.mnist_model import MNIST_Model
 from models.fashionmnist_model import FashionMNIST_CNN
 from models.gtsrb_model import GTSRB_CNN
-from models.cifar10_dla import Cifar10_DLA
+# from models.cifar10_dla import Cifar10_DLA
 from models.cifar10_model import Cifar10_CNN
 
 from models.transformers import transformers
@@ -82,13 +87,10 @@ torch.cuda.manual_seed(SEED)
 device = get_device(GPU_NAME)
 torch.cuda.get_device_name(device)
 
-
 # # Load / Split / DataLoader
 feature_names = get_labels(DATASET)
-
 train_data = get_dataset(DATASET, path_data, train=True, transform=transformer['train'])
 test_data = get_dataset(DATASET, path_data, train=False, transform=transformer['test'])
-
 
 trainloader = get_dataLoader(train_data, model_config['batch_size'], True)
 testloader = get_dataLoader(test_data, model_config['batch_size'], False)
@@ -132,8 +134,6 @@ def start_training_testing(model_name, model, loss_function, optimizer, schedule
         'loss_function': loss_function,
         'optimizer': optimizer,
         'lr_scheduler': scheduler,
-        'map_classes': None,
-        'skip_classes': None,
         'device': device,
         'model_path': path_saved_model / f"{model_name}.pth.tar",
         'trainloader': trainloader,
@@ -176,7 +176,6 @@ for lhl in config['lhl_neurons']:
         print(f'[ Found: {model_name}]')
         continue
 
-
     print(f'[ Training: {model_name}]')
 
     # create model
@@ -203,8 +202,8 @@ for lhl in config['lhl_neurons']:
     save_confusion_matrix(confusion_matrix_test_norm, path_saved_model, model_name, 'test')
 
     # export last hidden layer data
-    export_last_hidden_layer(trainloader, model, device, lhl, None, path_lhl_raw, model_name, 'raw_train')
-    export_last_hidden_layer(testloader, model, device, lhl, None, path_lhl_raw, model_name, 'raw_test')
+    export_last_hidden_layer(trainloader, model, device, lhl, path_lhl_raw, model_name, 'raw_train')
+    export_last_hidden_layer(testloader, model, device, lhl, path_lhl_raw, model_name, 'raw_test')
 
 
 # save model stats csv
@@ -212,7 +211,6 @@ if model_stats.shape[0] != 0:
     model_stats.to_csv(path_stats / f'{DATASET}_model_stats.csv', index=False)
 
 # Export PCA
-
 for lhl in config['lhl_neurons']:
 
     # model postfix
