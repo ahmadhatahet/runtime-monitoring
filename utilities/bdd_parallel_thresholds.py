@@ -5,7 +5,6 @@ from pathlib import Path
 
 from utilities.utils import *
 from utilities.pathManager import fetchPaths
-from utilities.pcaFunctions import applyPCASingle
 from utilities.MonitorUnifiedBDD import build_bdd_multi_etas
 
 from models.mnist_model import MNIST_Model
@@ -13,8 +12,6 @@ from models.fashionmnist_model import FashionMNIST_CNN
 from models.gtsrb_model import GTSRB_CNN
 from models.cifar10_dla import Cifar10_DLA
 from models.cifar10_model import Cifar10_CNN
-
-from models.transformers import transformers
 
 models = {
     'mnist': MNIST_Model,
@@ -26,7 +23,7 @@ models = {
 
 def run_parallel(args):
 
-    DATASET, TARGET_DATASET, POSTFIX, N, FLAVOR, LOAD_NEURONS, eta, memory = args
+    DATASET, POSTFIX, N, FLAVOR, LOAD_NEURONS, eta, memory = args
 
     POSTFIX = f"{POSTFIX}-{N}"
 
@@ -40,18 +37,10 @@ def run_parallel(args):
     path_lhl_data = paths['lhl_' + FLAVOR]
     path_bdd = paths['bdd'] / FLAVOR
     path_bdd.mkdir(exist_ok=True)
-    path_target_data = paths['data'].parent / TARGET_DATASET
 
     # load bdd thresholds
     configs_thld = load_json(paths['configuration'].parent / 'thresholds.json')
     thresholds = configs_thld['thlds']
-
-    # # load pca and scaler objects
-    # if FLAVOR == 'scaler_pca':
-    #     # load sacler object
-    #     sacler_ = load_pickle(path_lhl / f'scaler.pkl')
-    #     # load pca object
-    #     pca_ = load_pickle(path_lhl / f'scaler_pca.pkl')
 
     # load evaluation data or create one
     df_logits_copy = pd.read_csv(path_lhl_data / f"{FILENAME_POSTFIX}_{FLAVOR}_evaluation.csv")
@@ -110,29 +99,9 @@ def run_parallel(args):
         if (path_bdd / final_csv_filename('scores')).is_file():
             print(f"[ FOUNDED: {DATASET} {POSTFIX2_TEMP}]")
             continue
-            # df_bdd_info = pd.read_csv(path_bdd / final_csv_filename('info'))
-            # df_bdd_scores = pd.read_csv(path_bdd / final_csv_filename('scores'))
 
         # args combinations
         combinations = [(thld_name, thld, eta) for (thld_name, thld) in zip(thld_names, thlds)]
-
-        # # drop a combination if the scores already have been collected
-        # ind_to_pop = []
-        # for i, (thld_name, *_) in enumerate(combinations):
-        #     if (
-        #         (path_bdd / final_csv_filename('info')).is_file()
-        #         and (path_bdd / final_csv_filename('scores')).is_file()
-        #     ):
-        #         print(f"[ FOUNDED: {POSTFIX2_TEMP} {thld_name} ]")
-        #         ind_to_pop.append(i)
-
-        # for i in ind_to_pop[::-1]: combinations.pop(i)
-
-        # # print combination
-        # for c, *_ in combinations: print(c)
-
-        # # start the pool
-        # if len(combinations) > 0:
 
         # run parallel build_bdd_multi_etas
         print("Numper of available CPUs:", min(len(combinations), mp.cpu_count()))
@@ -145,7 +114,6 @@ def run_parallel(args):
             [(df_train.copy(), df_test.copy(), df_true.copy(), df_logits_copy.copy(),
             selected_neurons, thld_name, thld, eta, memory, path_bdd)
             for thld_name, thld, eta in combinations])
-
         pool.close()
 
         # saving results
