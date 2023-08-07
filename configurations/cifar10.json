@@ -11,30 +11,28 @@
         },
         "lhl_neurons": [
             30,
-            50,
-            80,
-            150
+            50
         ],
         "flavors": [
             "raw",
-            "scaler_pca"
+            "scaler_pca",
+            "pca_components"
         ],
         "subset_neurons": [
             1,
             0
         ],
-        "eta": 4
+        "eta": 0
     },
     "model_setup": {
-        "batchnorm": 1,
-        "dropout": 0.25
+        "dropout": 0
     },
     "model_config": {
         "batch_size": 64,
-        "lr": 1e-1,
-        "epochs": 250,
+        "lr": 1e-2,
+        "epochs": 100,
         "patience": 5,
-        "L2": 1e-5,
-        "L1": 1e-5
+        "L2": 0,
+        "L1": 0
     }
 }
