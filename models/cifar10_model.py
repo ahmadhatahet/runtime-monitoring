@@ -3,7 +3,7 @@ import torch.nn as nn
 
 class Cifar10_CNN(nn.Module):
     def __init__(self, channels=3, img_dim=32, outneurons=10, last_hidden_neurons=80,
-        weight_init="kaiming_uniform", bias=True, dropout=0.0, batchnorm=True):
+        weight_init="kaiming_uniform", bias=False, dropout=0.0):
 
         super(Cifar10_CNN, self).__init__()
 
@@ -13,7 +13,6 @@ class Cifar10_CNN(nn.Module):
         self.num_classes = outneurons
         self.last_hidden_neurons = last_hidden_neurons
         self.dropout_p = dropout
-        self.batchnorm = batchnorm
 
         # uniform(-1/sqrt(in_features), 1/sqrt(in_features))
         weights = {
@@ -25,22 +24,22 @@ class Cifar10_CNN(nn.Module):
         }
 
         self.conv = nn.Sequential(
-            nn.Conv2d(self.channels, 256, 3, bias=False),
+            nn.Conv2d(self.channels, 256, 3, bias=bias),
             nn.BatchNorm2d(256),
             nn.ReLU(),
             nn.Dropout2d(self.dropout_p),
 
-            nn.Conv2d(256, 256, 3, bias=False),
+            nn.Conv2d(256, 256, 3, bias=bias),
             nn.BatchNorm2d(256),
             nn.ReLU(),
             nn.Dropout2d(self.dropout_p),
 
-            nn.Conv2d(256, 128, 3, bias=False),
+            nn.Conv2d(256, 128, 3, bias=bias),
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.Dropout2d(self.dropout_p),
 
-            nn.Conv2d(128, 128, 3, bias=False),
+            nn.Conv2d(128, 128, 3, bias=bias),
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.Dropout2d(self.dropout_p)
@@ -50,23 +49,24 @@ class Cifar10_CNN(nn.Module):
 
         self.linear = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(last_conv_out_feature * in_features_fc * in_features_fc, 2048, bias=False),
+            nn.Linear(last_conv_out_feature * in_features_fc * in_features_fc, 2048, bias=bias),
             nn.BatchNorm1d(2048),
             nn.ReLU(),
             nn.Dropout1d(self.dropout_p),
 
-            nn.Linear(2048, 1024, bias=False),
+            nn.Linear(2048, 1024, bias=bias),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
-            nn.Dropout1d(self.dropout_p),
 
-            nn.Linear(1024, self.last_hidden_neurons, bias=False)
+            nn.Linear(1024, self.last_hidden_neurons, bias=bias)
         )
 
-        self.bn = nn.BatchNorm1d(self.last_hidden_neurons)
-
         # expand all layers in sequential order
-        self.output = nn.Linear(self.last_hidden_neurons, self.num_classes, bias=False)
+        self.output = nn.Sequential(
+            nn.BatchNorm1d(self.last_hidden_neurons),
+            nn.ReLU(),
+            nn.Linear(self.last_hidden_neurons, self.num_classes, bias=bias)
+        )
 
         if weight_init:
             self.__weight_init(weights[weight_init], bias)
@@ -74,11 +74,6 @@ class Cifar10_CNN(nn.Module):
     def forward(self, x):
 
         x = self._train(x)
-
-        x = self.bn(x)
-        x = nn.ReLU()(x)
-        x = nn.Dropout1d(self.dropout_p)(x)
-
         x = self.output(x)
 
         return x
@@ -93,11 +88,6 @@ class Cifar10_CNN(nn.Module):
 
         x = self._train(x)
         out = x.clone().detach()
-
-        x = nn.BatchNorm1d(self.last_hidden_neurons)(x)
-        x = nn.ReLU()(x)
-        x = nn.Dropout1d(self.dropout_p)(x)
-
         x = self.output(x)
 
         return out, x
