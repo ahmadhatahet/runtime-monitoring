@@ -9,7 +9,7 @@ import torchvision.transforms as T
 class GTSRB(Dataset):
     def __init__(self, root, csv_file, transform=T.ToTensor()):
         self.root = root
-        self.data = read_csv(root / csv_file)
+        self.data = read_csv(root / csv_file, header=None)
         self.transform = transform
 
     def __len__(self):
