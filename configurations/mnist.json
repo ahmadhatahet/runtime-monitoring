@@ -13,8 +13,7 @@
             5,
             30,
             60,
-            100,
-            150
+            100
         ],
         "flavors": [
             "raw",
@@ -24,10 +23,9 @@
             1,
             0
         ],
-        "eta": 4
+        "eta": 0
     },
     "model_setup": {
-        "batchnorm": 1,
         "dropout": 0.2
     },
     "model_config": {
