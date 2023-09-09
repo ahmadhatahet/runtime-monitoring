@@ -1,0 +1,5 @@
+thld,eta,build_time_min,size_mb,reorder_time_min,num_patterns,num_unique_patterns_%,num_reorder,num_neurons,start_time,end_time,subset_name
+relu,0.0,0.0,4303.4,0.0,57679.0,0.4,0.0,8.0,2023-08-14 20:57:50,2023-08-14 20:57:50,components
+relu,1.0,0.017,4303.4,0.0,2032.0,0.8,0.0,8.0,2023-08-14 20:58:07,2023-08-14 20:58:08,components
+relu,2.0,0.0,4303.4,0.0,891.0,0.6,0.0,8.0,2023-08-14 20:58:26,2023-08-14 20:58:27,components
+relu,3.0,0.0,4303.4,0.0,382.0,0.5,0.0,8.0,2023-08-14 20:58:44,2023-08-14 20:58:45,components
