@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 from utilities.utils import load_json, load_pickle
 from utilities.pathManager import fetchPaths
 from utilities.pcaFunctions import numComponents
-from utilities.MonitorUnifiedBDD import build_bdd_multi_etas
+from utilities.MonitorBDD import build_bdd_multi_etas
 
 
 def build_threshold(DATASET, POSTFIX, FALVOR, LOAD_NEURONS, THLD, eta, memory, save_path=None):

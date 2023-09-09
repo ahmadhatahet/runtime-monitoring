@@ -8,6 +8,7 @@ from utilities.pathManager import fetchPaths
 from utilities.pcaFunctions import numComponents
 from utilities.MonitorBDD import build_bdd_multi_etas
 
+
 from smtplib import SMTP_SSL
 
 port = 465  # For SSL
@@ -45,7 +46,7 @@ def run_parallel(dataset, postfix, lhl, flavor, eta, memory):
 
     # output file name
     POSTFIX2 = flavor.lower()
-    # POSTFIX2 += "_neurons" if is_subset else ""
+    # POSTFIX2 += "_neurons-full" if is_subset else ""
     POSTFIX2 += f"_{filename_postfix}"
 
     if (path_bdd / f"all-thlds-info-{eta}-{POSTFIX2}.csv").is_file():
@@ -59,13 +60,13 @@ def run_parallel(dataset, postfix, lhl, flavor, eta, memory):
     df_eval = pd.read_csv(path_lhl_data / f"{filename_postfix}_{flavor}_evaluation.csv")
 
     # select only true classified instances
-    df_true = df_train[df_train["true"] == True].copy()
-    # df_true = pd.concat(
-    #     [
-    #         df_train[df_train["true"] == True].copy(),
-    #         df_test[df_test["true"] == True].copy(),
-    #     ]
-    # )
+    # df_true = df_train[df_train["true"] == True].copy()
+    df_true = pd.concat(
+        [
+            df_train[df_train["true"] == True].copy(),
+            df_test[df_test["true"] == True].copy(),
+        ]
+    )
     df_true = df_true.drop("true", axis=1).reset_index(drop=True)
 
     # load selected neurons
@@ -77,6 +78,7 @@ def run_parallel(dataset, postfix, lhl, flavor, eta, memory):
         neurons_dict["top_third"] = load_json(
             path_lhl / "neurons_scaler_pca_top_third.json"
         )
+        # del neurons_dict["None"]
 
     elif flavor == "scaler_pca":
         pca = load_pickle(path_lhl / "scaler_pca.pkl")
@@ -104,30 +106,32 @@ def run_parallel(dataset, postfix, lhl, flavor, eta, memory):
 
     # loop over two types of selected neurons if is_subset
 
-    # replace neurons with type of subset
-    # if is_subset:
-    #     POSTFIX2_TEMP = POSTFIX2.replace("neurons", neuron_name)
-    # else:
-    #     POSTFIX2_TEMP = POSTFIX2
+        # replace neurons with type of subset
+        # if is_subset:
+        #     POSTFIX2_TEMP = POSTFIX2.replace("neurons-full", neuron_name)
+        # else:
+        #     POSTFIX2_TEMP = POSTFIX2
 
-    # final_csv_filename = lambda type: f"all-thlds-{type}-{eta}-{POSTFIX2}.csv"
+        # final_csv_filename = lambda type: f"all-thlds-full-{type}-{eta}-{POSTFIX2_TEMP}.csv"
 
-    # if (path_bdd / final_csv_filename("scores")).is_file():
-    #     print(f"[ FOUNDED: {dataset} {POSTFIX2}]")
-    #     continue
+        # if (path_bdd / final_csv_filename("scores")).is_file():
+        #     print(f"[ FOUNDED: {dataset} {POSTFIX2_TEMP}]")
+        #     continue
 
     # args combinations
     combinations = [
         (thld_name, thld, eta) for (thld_name, thld) in zip(thld_names, thlds)
     ]
 
-    # run parallel build_bdd_multi_etas
-    # print("Numper of available CPUs:", min(len(combinations) * len(neurons_dict), mp.cpu_count()))
-    # print("Numper combinations:", len(combinations) * len(neurons_dict))
-    print("Numper of available CPUs:", min(len(combinations) * len(neurons_dict), 10))
-    print("Numper combinations:", len(combinations) * len(neurons_dict))
 
-    pool = mp.Pool(min(len(combinations) * len(neurons_dict), 10))
+    # run parallel build_bdd_multi_etas
+    num_cpus = len(combinations) * len(neurons_dict)
+    print("Numper of available CPUs:", min(num_cpus, mp.cpu_count()))
+    print("Numper combinations:", num_cpus)
+    # print("Numper of available CPUs:", min(num_cpus, 10))
+    # print("Numper combinations:", num_cpus)
+
+    pool = mp.Pool(min(num_cpus, 10))
 
     results = pool.map(
         build_bdd_multi_etas,
@@ -157,19 +161,19 @@ def run_parallel(dataset, postfix, lhl, flavor, eta, memory):
 
     df_bdd_info = pd.concat([r[0] for r in results]).reset_index(drop=True)
     df_bdd_info.to_csv(
-        path_bdd / f"all-thlds-info-{eta}-{POSTFIX2}.csv", index=False
+        path_bdd / f"all-thlds-full-info-{eta}-{POSTFIX2}.csv", index=False
     )
 
     df_bdd_scores = pd.concat([r[1] for r in results]).reset_index(drop=True)
     df_bdd_scores.to_csv(
-        path_bdd / f"all-thlds-scores-{eta}-{POSTFIX2}.csv", index=False
+        path_bdd / f"all-thlds-full-scores-{eta}-{POSTFIX2}.csv", index=False
     )
 
-    # replace neurons with type of selected neurons
-    # for p in path_bdd.glob("*neurons*.csv"):
-    #     p.rename(p.parent / p.name.replace("neurons", neuron_name))
+    # # replace neurons with type of selected neurons
+    # for p in path_bdd.glob("*neurons-full*.csv"):
+    #     p.rename(p.parent / p.name.replace("neurons-full", neuron_name))
 
-    send_email(f'[FINISHED] Only Train {eta}-{POSTFIX2}')
+    send_email(f'[FINISHED] Train & Test {eta}-{POSTFIX2}')
 
     print("[" + "=" * 100 + "]")
     print("> Finished!")
