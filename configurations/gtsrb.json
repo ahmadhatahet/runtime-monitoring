@@ -6,7 +6,7 @@
         },
         "scheduler": {
             "MultiStepLR": {
-                "milestones": [5, 20, 30, 35]
+                "milestones": [5, 20]
             }
         },
         "lhl_neurons": [
@@ -23,10 +23,9 @@
             1,
             0
         ],
-        "eta": 4
+        "eta": 0
     },
     "model_setup": {
-        "batchnorm": 1,
         "dropout": 0.25
     },
     "model_config": {
