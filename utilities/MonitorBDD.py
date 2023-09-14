@@ -9,7 +9,7 @@ from utilities.utils import save_pickle
 
 
 class MonitorBDD:
-    def __init__(self, num_neurons, thld, neurons=[], reorder=False, memory=1_000):
+    def __init__(self, num_neurons, thld, neurons=[], reorder=False, memory=10):
         # create instance of bdd class
         self.bdd = cudd.BDD(memory_estimate= memory * 2**30)
         # turn off automatic reordering
@@ -212,18 +212,6 @@ class MonitorBDD:
     def score_dataframe(self, df, bdd_col='bdd'):
         """TODO"""
         # return empty df if false column name was passed
-        if bdd_col not in df.columns:
-            return pd.DataFrame({
-                        'y': []
-                        ,'total_count': []
-                        ,'total_misclassified':[]
-                        ,'bdd_unrecognized': []
-                        ,'bdd_unrecognized_and_misclassified': []
-                        ,'out_of_pattern_%': []
-                        ,'out_of_pattern_and_misclassified_%': []
-                        ,'out_of_pattern_misclassified_%': []
-                        ,'eta':[]
-                    })
 
         # how many instances per class
         df_all_classes = df[['y', 'true']].groupby('y').count().sort_index()
@@ -241,22 +229,29 @@ class MonitorBDD:
         df_unrecognized_misclassified_images = df.loc[(df[bdd_col] == 0) & (df['true'] == False), ['y', bdd_col]].groupby('y').count().sort_index()
         df_unrecognized_misclassified_images.columns = [bdd_col + '_unrecognized_and_misclassified']
 
+        # how many patterns not found and misclassified
+        df_unrecognized_classified_images = df.loc[(df[bdd_col] == 0) & (df['true'] == True), ['y', bdd_col]].groupby('y').count().sort_index()
+        df_unrecognized_classified_images.columns = [bdd_col + '_unrecognized_and_classified']
+
         df_scores = df_all_classes.join(df_unrecognized_images)\
             .join(df_misclassified_images) \
             .join(df_unrecognized_misclassified_images) \
+            .join(df_unrecognized_classified_images) \
 
-        del df_unrecognized_images, df_unrecognized_misclassified_images
+        del df_unrecognized_images, df_unrecognized_misclassified_images, df_unrecognized_classified_images
 
         # add row all
         total_images = df_all_classes['total_count'].sum()
         misclassified_images = df_scores['total_misclassified'].sum()
         unrecognized_images = df_scores[bdd_col + '_unrecognized'].sum()
         unrecognized_and_misclassified_images = df_scores[bdd_col + '_unrecognized_and_misclassified'].sum()
+        unrecognized_and_classified_images = df_scores[bdd_col + '_unrecognized_and_classified'].sum()
         df_scores.loc['all', :] = [
             total_images,
             unrecognized_images,
             misclassified_images,
-            unrecognized_and_misclassified_images
+            unrecognized_and_misclassified_images,
+            unrecognized_and_classified_images
         ]
 
         # if data frame return 0 rows, a nan will be placed
@@ -264,31 +259,33 @@ class MonitorBDD:
 
         ## calculate metrics
         # Not recognized patterns
-        df_scores['unrecognized_%'] = df_scores[bdd_col + '_unrecognized'] / df_scores['total_count']
+        df_scores['NPR'] = df_scores[bdd_col + '_unrecognized'] / df_scores['total_count']
 
         # more misclassfied and undetected pattern means the monitor is correctly detecting unfamiliar patterns
-        df_scores['unrecognized_and_misclassified_%'] = df_scores[bdd_col + '_unrecognized_and_misclassified'] / df_scores[bdd_col + '_unrecognized']
+        df_scores['NPV'] = df_scores[bdd_col + '_unrecognized_and_misclassified'] / df_scores[bdd_col + '_unrecognized']
 
         # more unrecognized and missclassified mean the BDD is memorizing the model.
-        df_scores['unrecognized_misclassified_fit_%'] = df_scores[bdd_col + '_unrecognized_and_misclassified'] / df_scores['total_misclassified']
+        df_scores['specificity'] = df_scores[bdd_col + '_unrecognized_and_misclassified'] / df_scores['total_misclassified']
 
         # if class is never Misclassified and bdd recognize all of its patterns
-        # both unrecognized_% and unrecognized_misclassified will be 0
+        # both NPR and unrecognized_misclassified will be 0
         # so the division will result in NaN, thus will be replaced by zero
         # because we don't know how the monitor will react once the class's data start to get outdated
-        df_scores['unrecognized_%'].replace({np.nan:0.0}, inplace=True)
-        df_scores['unrecognized_and_misclassified_%'].replace({np.nan:0.0, 0.0:1.0}, inplace=True)
-        df_scores['unrecognized_misclassified_fit_%'].replace({np.nan:0.0}, inplace=True)
+        df_scores['NPR'].replace({np.nan:0.0}, inplace=True)
+        df_scores['NPV'].replace({np.nan:0.0}, inplace=True)
+        df_scores['specificity'].replace({np.nan:0.0}, inplace=True)
 
         # no missclassification for a class
         df_scores[bdd_col + '_unrecognized'].replace({np.nan:0.0}, inplace=True)
         df_scores[bdd_col + '_unrecognized_and_misclassified'].replace({np.nan:0.0}, inplace=True)
+        df_scores[bdd_col + '_unrecognized_and_classified'].replace({np.nan:0.0}, inplace=True)
 
         # reorder columns
         df_scores = df_scores[['total_count', 'total_misclassified', bdd_col + '_unrecognized',
                                bdd_col + '_unrecognized_and_misclassified',
-                               'unrecognized_%','unrecognized_and_misclassified_%',
-                              'unrecognized_misclassified_fit_%']]
+                               bdd_col + '_unrecognized_and_classified',
+                               'NPR','NPV',
+                              'specificity']]
 
         if bdd_col=='bdd':
             return df_scores.reset_index()
