@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
 import seaborn as sns
 
 # dark green palette
@@ -106,11 +107,11 @@ def plot_pattern(nn_binary, save_path=None):
     def drawNeuron(x, y, active=True):
         """draw circle"""
         if active:
-            return plt.Circle(
+            return Circle(
                 (x, y), 0.35, facecolor="red", edgecolor="#292929", linewidth=0.5
             )
 
-        return plt.Circle(
+        return Circle(
             (x, y), 0.35, facecolor="#292929", edgecolor="#292929", linewidth=0.5
         )
 
@@ -128,8 +129,9 @@ def plot_pattern(nn_binary, save_path=None):
         cr.append(drawNeuron(x_cor, y_cor + 1, n))
 
     fig, ax = plt.subplots(figsize=((3 * (1 + (1 - base / x_cor))), 3), dpi=150)
-    for c in cr:
+    for i, c in enumerate(cr):
         ax.add_patch(c)
+
     ax.set_xticks(range(0, x_cor + 2))
     ax.set_yticks(range(0, base + 2))
     ax.set_axis_off()
@@ -147,11 +149,11 @@ def plot_img_pattern(nn_binary, img, label, save_path=None):
 
     def drawNeuron(x, y, active=True):
         if active:
-            return plt.Circle(
+            return Circle(
                 (x, y), 0.35, facecolor="red", edgecolor="#292929", linewidth=0.5
             )
 
-        return plt.Circle(
+        return Circle(
             (x, y), 0.35, facecolor="#292929", edgecolor="#292929", linewidth=0.5
         )
 
