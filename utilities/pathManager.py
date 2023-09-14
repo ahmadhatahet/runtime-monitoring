@@ -37,7 +37,7 @@ def fetchPaths(base, dataset, postfix, skip_create=True):
         'bdd': base / 'experiments' / dataset / 'bdd' / FILENAME_POSTFIX,
         'lhl': base / 'experiments' / dataset / 'last-hidden-layer' / FILENAME_POSTFIX,
         'lhl_raw': base / 'experiments' / dataset / 'last-hidden-layer' / FILENAME_POSTFIX / 'raw',
-        'lhl_scaler_pca': base / 'experiments' / dataset / 'last-hidden-layer' / FILENAME_POSTFIX / 'scaler_pca',
+        'lhl_pca': base / 'experiments' / dataset / 'last-hidden-layer' / FILENAME_POSTFIX / 'pca',
     }
 
     if skip_create:
