@@ -68,8 +68,6 @@ class MNIST_Model(nn.Module):
 
     def _train(self, x):
 
-        if self.first_layer_norm: x = self.scaleInputs(x)
-
         x = self.conv(x)
 
         x = self.flatten(x)
