@@ -12,6 +12,7 @@ dump*
 *.sh
 *.zip
 *.pickle
+.vscode/*
 !requirements.txt
 main.py
 app.py
