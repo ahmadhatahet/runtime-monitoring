@@ -17,7 +17,7 @@
         ],
         "flavors": [
             "raw",
-            "scaler_pca"
+            "pca"
         ],
         "subset_neurons": [
             1,
