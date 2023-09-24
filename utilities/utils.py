@@ -48,7 +48,7 @@ def get_models(base, Dataset):
     by number of last hidden layer neurons"""
     model_names = []
     for i in (base / 'experiments' / Dataset / 'saved-models').iterdir():
-        if i.name[:len(Dataset)] == Dataset:
+        if i.name[:len(Dataset)] == Dataset and len(i.name[len(Dataset)+1:].split('_')) == 1:
             model_names.append(i.name.replace(Dataset + '_', ''))
 
     model_names.sort(key=lambda x: int(x.split('-')[-1]))
