@@ -60,7 +60,7 @@ class MNIST_Model(nn.Module):
     def forward(self, x):
 
         x = self._train(x)
-        if self.batchnorm: x = self.bn4(x)
+        x = self.bn4(x)
         x = self.relu(x)
         x = self.output(x)
 
@@ -74,7 +74,7 @@ class MNIST_Model(nn.Module):
 
         x = self.dropout_l(x)
         x = self.fc3(x)
-        if self.batchnorm: x = self.bn3(x)
+        x = self.bn3(x)
         x = self.relu(x)
 
         x = self.dropout_l(x)
@@ -86,7 +86,7 @@ class MNIST_Model(nn.Module):
 
         x = self._train(x)
         out = x.clone().detach()
-        if self.batchnorm: x = self.bn4(x)
+        x = self.bn4(x)
         x = self.relu(x)
         x = self.output(x)
 
