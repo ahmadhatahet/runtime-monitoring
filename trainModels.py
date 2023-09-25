@@ -45,7 +45,6 @@ warnings.filterwarnings('ignore')
 from models.mnist_model import MNIST_Model
 from models.fashionmnist_model import FashionMNIST_CNN
 from models.gtsrb_model import GTSRB_CNN
-# from models.cifar10_dla import Cifar10_DLA
 from models.cifar10_model import Cifar10_CNN
 
 from models.transformers import transformers
@@ -54,7 +53,6 @@ models = {
     'mnist': MNIST_Model,
     'fashionmnist': FashionMNIST_CNN,
     'gtsrb': GTSRB_CNN,
-    # 'cifar10': Cifar10_DLA,
     'cifar10': Cifar10_CNN
 }
 
@@ -221,7 +219,7 @@ for lhl in config['lhl_neurons']:
     paths_ = fetchPaths(base, DATASET, postfix)
     p_lhl = paths_['lhl']
     p_lhl_raw = paths_['lhl_raw']
-    p_lhl_scaler_pca = paths_['lhl_scaler_pca']
+    p_lhl_scaler_pca = paths_['lhl_pca']
 
     # load data
     train = pd.read_csv(p_lhl_raw / f'{model_name}_raw_train.csv')
@@ -230,20 +228,20 @@ for lhl in config['lhl_neurons']:
 
     # fit scaler and pca
     scaler_ = fitStandardScalerSingle(true, lhl)
-    scaler_pca_ = fitPCASingle(true, scaler_, lhl)
+    pca_ = fitPCASingle(true, scaler_, lhl)
 
     # save objects
     save_pickle(p_lhl / 'scaler.pkl', scaler_)
-    save_pickle(p_lhl / 'scaler_pca.pkl', scaler_pca_)
+    save_pickle(p_lhl / 'pca.pkl', pca_)
 
     # transform and save data
     ## train
-    applyPCASingle(train, scaler_, scaler_pca_, lhl).to_csv(p_lhl_scaler_pca / f'{model_name}_scaler_pca_train.csv', index=False)
+    applyPCASingle(train, scaler_, pca_, lhl).to_csv(p_lhl_scaler_pca / f'{model_name}_pca_train.csv', index=False)
 
     ## test
-    applyPCASingle(test, scaler_, scaler_pca_, lhl).to_csv(p_lhl_scaler_pca / f'{model_name}_scaler_pca_test.csv', index=False)
+    applyPCASingle(test, scaler_, pca_, lhl).to_csv(p_lhl_scaler_pca / f'{model_name}_pca_test.csv', index=False)
 
     # save selected neurons
-    gte_mean, top_third = neuronsLoadingsSingle(scaler_pca_, lhl)
-    save_json(p_lhl / 'neurons_scaler_pca_gte_mean.json', gte_mean)
-    save_json(p_lhl / 'neurons_scaler_pca_top_third.json', top_third)
+    gte_mean, top_third = neuronsLoadingsSingle(pca_, lhl)
+    save_json(p_lhl / 'neurons_gte_mean.json', gte_mean)
+    save_json(p_lhl / 'neurons_top_third.json', top_third)
