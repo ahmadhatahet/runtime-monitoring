@@ -1,0 +1,5 @@
+thld,eta,build_time_min,size_mb,reorder_time_min,num_patterns,num_unique_patterns_%,num_reorder,num_neurons,start_time,end_time,subset_name
+mean,0.0,0.0,4303.4,0.0,68875.0,0.2,0.0,7.0,2023-08-14 20:45:11,2023-08-14 20:45:11,components
+mean,1.0,0.0,4303.4,0.0,896.0,0.0,0.0,7.0,2023-08-14 20:45:20,2023-08-14 20:45:20,components
+mean,2.0,0.0,4303.4,0.0,384.0,0.0,0.0,7.0,2023-08-14 20:45:30,2023-08-14 20:45:30,components
+mean,3.0,0.0,4303.4,0.0,160.0,0.0,0.0,7.0,2023-08-14 20:45:42,2023-08-14 20:45:42,components
