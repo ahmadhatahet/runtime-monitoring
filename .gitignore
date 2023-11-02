@@ -4,6 +4,10 @@ __pycache__/
 *$py.class
 
 # perosnal files
+experiments/Cifar10
+ToDelete/*
+configurations/email-password.json
+supporting-scripts/*
 ./Course Assignments
 ./FiguresWriting
 datasets
