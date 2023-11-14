@@ -1,6 +1,6 @@
 import torchvision.transforms as T
 
-transformers = {
+transform = {
     'mnist': {
         'train': T.Compose([
             T.ToTensor(),
