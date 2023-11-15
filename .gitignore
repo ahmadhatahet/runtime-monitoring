@@ -6,10 +6,9 @@ __pycache__/
 # perosnal files
 experiments/Cifar10
 ToDelete/*
+experiments/*/last-hidden-layer/**/*.csv
 configurations/email-password.json
 supporting-scripts/*
-./Course Assignments
-./FiguresWriting
 datasets
 matplotlibColors.png
 dump*
@@ -23,7 +22,6 @@ app.py
 pattern.py
 train.py
 start-jupyter.sh
-last-hidden-layer
 
 # C extensions
 *.so
