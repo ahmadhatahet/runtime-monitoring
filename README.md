@@ -14,15 +14,14 @@ The code and conducted experiments in this repo assisted in the following master
 
 
 # Important Scripts and Notebooks (TBD)
-- MonitorBDD: is the actual class used to construct the monitor and run the evaluation.
-- Train Model: notebook to train a NN model for a dataset.
-- train models
-- generate evaluation data
-- test noisy images
-- test augmented images
-- test drop class
-- EDA Dataset
-- EDA LHL
-- EDA monitor
+- [MonitorBDD](https://github.com/ahmadhatahet/runtime-monitoring/blob/d2503f1881504a6a23786cab1e491a50eebfe0f3/utilities/MonitorBDD.py#L11): The class used to construct the monitor and run the evaluation.
+- [Train Model](https://github.com/ahmadhatahet/runtime-monitoring/blob/master/experiments/train-nn-model.ipynb): Notebook to train a NN model.
+- [Build a Monitor](https://github.com/ahmadhatahet/runtime-monitoring/blob/master/experiments/build-one-monitor.ipynb): Build a monitor after training a NN model.
+- [Analyize NN Stats](https://github.com/ahmadhatahet/runtime-monitoring/blob/master/experiments/analyze-model-stats.ipynb)
+- [Analyize a Monitor Stats](https://github.com/ahmadhatahet/runtime-monitoring/blob/master/experiments/monitor-stats.ipynb)
+- [Generate Evaluation Data](https://github.com/ahmadhatahet/runtime-monitoring/blob/master/experiments/generate-evaluation-data.ipynb): Generating images used in evaluating the monitor against novel classes.
+- [Test Noisy Images](https://github.com/ahmadhatahet/runtime-monitoring/blob/master/experiments/test-noisy-images.ipynb): Add noise gradually to images and test how far the moniotr can identify the images.
+- [Test Unseen Class](https://github.com/ahmadhatahet/runtime-monitoring/blob/master/experiments/test-monitor-some-classes.ipynb): Train NN on some classes and leave out a couple of them for testing unseen classes.
+- [EDA LHL](https://github.com/ahmadhatahet/runtime-monitoring/blob/master/experiments/eda-lhl.ipynb)
 
 <br />
