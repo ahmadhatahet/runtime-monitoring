@@ -61,7 +61,7 @@ json5 @ file:///home/conda/feedstock_root/build_artifacts/json5_1688248289187/wo
 jsonpointer==2.3
 jsonschema @ file:///home/conda/feedstock_root/build_artifacts/jsonschema-meta_1669810440410/work
 jupyter-events @ file:///croot/jupyter_events_1684268042853/work
-jupyter-lsp==2.2.0
+jupyter-lsp==2.2.2
 jupyter-server==1.24.0
 jupyter-ydoc @ file:///croot/jupyter_ydoc_1683747223142/work
 jupyter_client @ file:///croot/jupyter_client_1680171862562/work
