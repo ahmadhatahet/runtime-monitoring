@@ -108,7 +108,7 @@ parso @ file:///opt/conda/conda-bld/parso_1641458642106/work
 pathos==0.3.0
 pexpect @ file:///tmp/build/80754af9/pexpect_1605563209008/work
 pickleshare @ file:///tmp/build/80754af9/pickleshare_1606932040724/work
-Pillow==9.3.0
+Pillow==10.2.0
 pkgutil_resolve_name @ file:///home/conda/feedstock_root/build_artifacts/pkgutil-resolve-name_1633981968097/work
 platformdirs @ file:///opt/conda/conda-bld/platformdirs_1662711380096/work
 plotly==5.14.1
